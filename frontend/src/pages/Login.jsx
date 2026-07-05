@@ -155,7 +155,7 @@ function Login() {
   );
 }
 
-// Inline styles leveraging CSS variables for premium look & styling control
+// Inline styles for ultra-modern light theme
 const styles = {
   loginContainer: {
     display: 'flex',
@@ -164,25 +164,25 @@ const styles = {
     minHeight: '100vh',
     width: '100%',
     padding: '1.5rem',
-    background: 'var(--bg-main)',
+    backgroundColor: '#f8fafc', // Ultra clean slate light background
     backgroundImage: `
-      radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.12) 0px, transparent 50%)
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 45%),
+      radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.15) 0px, transparent 45%)
     `,
   },
   loginCard: {
     width: '100%',
     maxWidth: '440px',
-    backgroundColor: 'var(--bg-card)',
-    backdropFilter: 'blur(16px)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '2.5rem 2rem',
-    boxShadow: 'var(--shadow-lg), var(--shadow-neon)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // Light glassmorphic card
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    borderRadius: '16px', // smooth radius
+    padding: '2.5rem 2.25rem',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(99, 102, 241, 0.08)',
     display: 'flex',
     flexDirection: 'column',
     gap: '1.5rem',
-    transition: 'var(--transition-all)',
+    transition: 'all 0.3s ease',
   },
   header: {
     display: 'flex',
@@ -191,55 +191,53 @@ const styles = {
     textAlign: 'center',
   },
   logoContainer: {
-    width: '60px',
-    height: '60px',
-    borderRadius: 'var(--radius-md)',
-    background: 'linear-gradient(135deg, var(--color-todo), var(--color-test))',
+    width: '56px',
+    height: '56px',
+    borderRadius: '12px',
+    background: 'linear-gradient(135deg, #6366f1, #06b6d4)', // Soft violet-cyan gradient
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '1rem',
-    boxShadow: '0 8px 16px rgba(139, 92, 246, 0.25)',
+    boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)',
   },
   logoIcon: {
-    fontSize: '2rem',
+    fontSize: '1.75rem',
   },
   title: {
-    fontFamily: 'var(--font-title)',
-    fontSize: '1.75rem',
+    fontFamily: 'Outfit, sans-serif',
+    fontSize: '1.625rem',
     fontWeight: 800,
-    letterSpacing: '-0.03em',
-    background: 'linear-gradient(to right, #ffffff, #d1d5db)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    marginBottom: '0.5rem',
+    letterSpacing: '-0.02em',
+    color: '#0f172a', // Deep slate for primary typography
+    marginBottom: '0.375rem',
   },
   subtitle: {
     fontSize: '0.875rem',
-    color: 'var(--text-secondary)',
+    color: '#475569', // Medium slate for body/subtitle
     lineHeight: '1.4',
   },
   errorAlert: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
-    padding: '0.875rem 1rem',
-    borderRadius: 'var(--radius-md)',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#fca5a5',
-    fontSize: '0.875rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '8px',
+    backgroundColor: '#fef2f2', // Light red bg
+    border: '1px solid #fecaca',
+    color: '#b91c1c', // Dark red text
+    fontSize: '0.85rem',
   },
   successAlert: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
-    padding: '0.875rem 1rem',
-    borderRadius: 'var(--radius-md)',
-    backgroundColor: 'var(--color-done-bg)',
-    border: `1px solid var(--color-done)`,
-    color: '#a7f3d0',
-    fontSize: '0.875rem',
+    padding: '0.75rem 1rem',
+    borderRadius: '8px',
+    backgroundColor: '#ecfdf5', // Light green bg
+    border: '1px solid #a7f3d0',
+    color: '#047857', // Dark green text
+    fontSize: '0.85rem',
   },
   form: {
     display: 'flex',
@@ -249,12 +247,12 @@ const styles = {
   inputGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.5rem',
+    gap: '0.4rem',
   },
   label: {
-    fontSize: '0.875rem',
+    fontSize: '0.825rem',
     fontWeight: 600,
-    color: 'var(--text-primary)',
+    color: '#334155', // Slate-700
   },
   passwordLabelRow: {
     display: 'flex',
@@ -263,9 +261,10 @@ const styles = {
   },
   forgotLink: {
     fontSize: '0.75rem',
-    color: 'var(--color-todo)',
+    color: '#4f46e5', // Indigo link
+    fontWeight: 500,
     textDecoration: 'none',
-    transition: 'var(--transition-all)',
+    transition: 'color 0.2s ease',
   },
   inputWrapper: {
     position: 'relative',
@@ -274,20 +273,20 @@ const styles = {
   },
   inputIcon: {
     position: 'absolute',
-    left: '1rem',
-    color: 'var(--text-muted)',
+    left: '0.875rem',
+    color: '#94a3b8', // Muted slate-400
     pointerEvents: 'none',
   },
   input: {
     width: '100%',
-    padding: '0.75rem 1rem 0.75rem 2.75rem',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-md)',
-    color: 'var(--text-primary)',
+    padding: '0.7rem 1rem 0.7rem 2.5rem',
+    backgroundColor: '#ffffff', // Clean white background for inputs
+    border: '1px solid #cbd5e1', // Light gray border
+    borderRadius: '8px',
+    color: '#0f172a', // Dark text inside input
     fontFamily: 'var(--font-sans)',
-    fontSize: '0.95rem',
-    transition: 'var(--transition-all)',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s ease',
     outline: 'none',
   },
   eyeButton: {
@@ -295,33 +294,33 @@ const styles = {
     right: '0.75rem',
     background: 'none',
     border: 'none',
-    color: 'var(--text-muted)',
+    color: '#94a3b8',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '0.25rem',
-    transition: 'var(--transition-all)',
+    transition: 'color 0.2s ease',
   },
   submitBtn: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
-    padding: '0.875rem',
-    background: 'linear-gradient(135deg, var(--color-todo), #7c3aed)',
-    color: 'white',
+    padding: '0.8rem',
+    background: 'linear-gradient(135deg, #4f46e5, #6366f1)', // Modern Indigo/Purple gradient
+    color: '#ffffff',
     border: 'none',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '0.95rem',
+    borderRadius: '8px',
+    fontSize: '0.925rem',
     fontWeight: 600,
-    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.25)',
-    transition: 'var(--transition-all)',
+    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.15)',
+    transition: 'all 0.2s ease',
     marginTop: '0.5rem',
   },
   loader: {
-    width: '20px',
-    height: '20px',
+    width: '18px',
+    height: '18px',
     border: '2px solid rgba(255, 255, 255, 0.3)',
     borderTop: '2px solid white',
     borderRadius: '50%',
@@ -333,7 +332,7 @@ const styles = {
   },
   footerText: {
     fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    color: '#64748b', // Slate-500
   }
 };
 
