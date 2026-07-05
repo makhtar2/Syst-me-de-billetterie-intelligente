@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
-// Seeding realistic mock data
-const INITIAL_USERS = [
-  { id: 'USR-001', nom: 'Sow', prenom: 'Moussa', email: 'moussa.sow@email.com', telephone: '+221 77 123 45 67', role: 'Administrateur', status: 'Actif', date: '2026-05-12' },
-  { id: 'USR-002', nom: 'Diop', prenom: 'Fatou', email: 'fatou.diop@email.com', telephone: '+221 78 234 56 78', role: 'Agent', status: 'Actif', date: '2026-06-01' },
-  { id: 'USR-003', nom: 'Ndiaye', prenom: 'Ibrahima', email: 'ibrahima.ndiaye@email.com', telephone: '+221 76 345 67 89', role: 'Client', status: 'Actif', date: '2026-06-15' },
-  { id: 'USR-004', nom: 'Fall', prenom: 'Awa', email: 'awa.fall@email.com', telephone: '+221 70 456 78 90', role: 'Client', status: 'Bloqué', date: '2026-06-20' },
-  { id: 'USR-005', nom: 'Gueye', prenom: 'Ousmane', email: 'ousmane.gueye@email.com', telephone: '+221 77 567 89 01', role: 'Agent', status: 'Bloqué', date: '2026-06-22' },
-  { id: 'USR-006', nom: 'Diallo', prenom: 'Mariama', email: 'mariama.diallo@email.com', telephone: '+221 78 678 90 12', role: 'Client', status: 'Supprimé', date: '2026-06-25' },
+const API_BASE_URL = 'http://localhost:5050/api/admin';
+
+// Tiny mock dataset for local offline fallback/demo mode
+const FALLBACK_USERS = [
+  { id: 'USR-DEMO1', nom: 'Sow', prenom: 'Moussa', email: 'moussa.sow@email.com', telephone: '+221 77 123 45 67', role: 'Administrateur', status: 'Actif', date: '2026-05-12' },
+  { id: 'USR-DEMO2', nom: 'Diop', prenom: 'Fatou', email: 'fatou.diop@email.com', telephone: '+221 78 234 56 78', role: 'Agent', status: 'Bloqué', date: '2026-06-01' }
 ];
 
 function UserManagement() {
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [isOffline, setIsOffline] = useState(false);
+  const [isLoadingList, setIsLoadingList] = useState(false);
   
   // Search & Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +41,35 @@ function UserManagement() {
     if (metaDesc) {
       metaDesc.content = "Gérer les administrateurs, agents et clients du réseau de transport.";
     }
+  }, []);
+
+  // Fetch users from the Node.js API
+  const fetchUsers = async () => {
+    setIsLoadingList(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/users`);
+      if (response.ok) {
+        const data = await response.json();
+        // Assume API returns array of users
+        setUsers(data);
+        setIsOffline(false);
+      } else {
+        throw new Error("Réponse serveur incorrecte");
+      }
+    } catch (err) {
+      console.warn("API Backend inaccessible. Mode démo local activé.");
+      setIsOffline(true);
+      // Initialize with tiny demo data if state is empty
+      if (users.length === 0) {
+        setUsers(FALLBACK_USERS);
+      }
+    } finally {
+      setIsLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   // Compute Statistics
@@ -90,35 +119,114 @@ function UserManagement() {
     }
   };
 
-  // Bulk Actions
-  const handleBulkAction = (action) => {
+  // Bulk Actions (API + Fallback)
+  const handleBulkAction = async (action) => {
     if (selectedUserIds.length === 0) return;
     
+    if (!isOffline) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/bulk-status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: selectedUserIds, action })
+        });
+        if (response.ok) {
+          fetchUsers();
+          setSelectedUserIds([]);
+          return;
+        }
+      } catch (err) {
+        console.error("Échec de l'action groupée via API, repli local.", err);
+      }
+    }
+
+    // Offline local fallback
     setUsers(users.map(user => {
       if (selectedUserIds.includes(user.id)) {
         return { ...user, status: action };
       }
       return user;
     }));
-    
     setSelectedUserIds([]);
   };
 
-  // Single User Actions
-  const handleToggleStatus = (id, currentStatus) => {
+  // Single User Actions (API + Fallback)
+  const handleToggleStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === 'Actif' ? 'Bloqué' : 'Actif';
+    
+    if (!isOffline) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus })
+        });
+        if (response.ok) {
+          fetchUsers();
+          return;
+        }
+      } catch (err) {
+        console.error("Échec modification statut via API, repli local.", err);
+      }
+    }
+
+    // Fallback
     setUsers(users.map(u => u.id === id ? { ...u, status: nextStatus } : u));
   };
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
+    if (!isOffline) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          fetchUsers();
+          return;
+        }
+      } catch (err) {
+        console.error("Échec de suppression via API, repli local.", err);
+      }
+    }
+
+    // Fallback
     setUsers(users.map(u => u.id === id ? { ...u, status: 'Supprimé' } : u));
   };
 
-  // Create User Handler
-  const handleCreateUser = (e) => {
+  // Create User Handler (API + Fallback)
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!newNom || !newPrenom || !newEmail || !newTelephone) return;
 
+    if (!isOffline) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nom: newNom,
+            prenom: newPrenom,
+            email: newEmail,
+            telephone: newTelephone,
+            role: newRole
+          })
+        });
+        if (response.ok) {
+          fetchUsers();
+          setIsCreateModalOpen(false);
+          setNewNom('');
+          setNewPrenom('');
+          setNewEmail('');
+          setNewTelephone('');
+          setNewRole('Client');
+          return;
+        }
+      } catch (err) {
+        console.error("Échec création utilisateur via API, repli local.", err);
+      }
+    }
+
+    // Fallback local creation
     const newId = `USR-0${users.length + 1}`;
     const newUser = {
       id: newId,
@@ -127,13 +235,11 @@ function UserManagement() {
       email: newEmail,
       telephone: newTelephone,
       role: newRole,
-      status: 'Bloqué', // Initial state before email activation
+      status: 'Bloqué',
       date: new Date().toISOString().split('T')[0]
     };
 
     setUsers([newUser, ...users]);
-    
-    // Reset Form & Close Modal
     setNewNom('');
     setNewPrenom('');
     setNewEmail('');
@@ -142,22 +248,46 @@ function UserManagement() {
     setIsCreateModalOpen(false);
   };
 
-  // CSV Import Mock Handler
-  const handleCsvSubmit = (e) => {
+  // CSV Import Handler (API + Fallback)
+  const handleCsvSubmit = async (e) => {
     e.preventDefault();
     if (!csvFile) return;
 
     setCsvSuccessMessage("Importation en cours...");
-    
-    setTimeout(() => {
-      // Seed some mock users from the imported CSV
-      const importedUsers = [
-        { id: `USR-00${users.length + 1}`, nom: 'Baye', prenom: 'Modou', email: 'modou.baye@email.com', telephone: '+221 77 987 65 43', role: 'Client', status: 'Bloqué', date: new Date().toISOString().split('T')[0] },
-        { id: `USR-00${users.length + 2}`, nom: 'Ndiaye', prenom: 'Khadim', email: 'khadim.ndiaye@email.com', telephone: '+221 78 876 54 32', role: 'Agent', status: 'Bloqué', date: new Date().toISOString().split('T')[0] },
-      ];
 
+    if (!isOffline) {
+      try {
+        const formData = new FormData();
+        formData.append('file', csvFile);
+
+        const response = await fetch(`${API_BASE_URL}/users/import`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          setCsvSuccessMessage(`${resData.count || 'Importation'} utilisateurs importés avec succès !`);
+          setTimeout(() => {
+            fetchUsers();
+            setIsImportModalOpen(false);
+            setCsvFile(null);
+            setCsvSuccessMessage('');
+          }, 1500);
+          return;
+        }
+      } catch (err) {
+        console.error("Échec de l'importation via API, repli local.", err);
+      }
+    }
+
+    // Fallback simulation
+    setTimeout(() => {
+      const importedUsers = [
+        { id: `USR-00${users.length + 1}`, nom: 'Baye', prenom: 'Modou', email: 'modou.baye@email.com', telephone: '+221 77 987 65 43', role: 'Client', status: 'Bloqué', date: new Date().toISOString().split('T')[0] }
+      ];
       setUsers([...importedUsers, ...users]);
-      setCsvSuccessMessage("2 utilisateurs importés avec succès !");
+      setCsvSuccessMessage("1 utilisateur importé en local.");
       setTimeout(() => {
         setIsImportModalOpen(false);
         setCsvFile(null);
@@ -183,6 +313,17 @@ function UserManagement() {
       </header>
 
       <main style={styles.mainContent}>
+        {/* API Offline Notice */}
+        {isOffline && (
+          <div style={styles.offlineNotice}>
+            <span className="material-symbols-outlined" style={styles.offlineIcon}>cloud_off</span>
+            <div>
+              <div style={styles.offlineTitle}>Mode Démo Local Actif</div>
+              <div style={styles.offlineText}>Le serveur API backend ({API_BASE_URL}) n'est pas démarré. Les actions sont simulées en mémoire locale.</div>
+            </div>
+          </div>
+        )}
+
         {/* Page Title & Main Action Buttons */}
         <section style={styles.pageHeader}>
           <div>
@@ -327,117 +468,124 @@ function UserManagement() {
         {/* User Table Card */}
         <section style={styles.tableCard}>
           <div style={styles.tableResponsive}>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.tableHeaderRow}>
-                  <th style={styles.tableHeaderThCheckbox}>
-                    <input
-                      type="checkbox"
-                      onChange={handleSelectAll}
-                      checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
-                      style={styles.checkbox}
-                    />
-                  </th>
-                  <th style={styles.tableHeaderTh}>Identifiant</th>
-                  <th style={styles.tableHeaderTh}>Utilisateur</th>
-                  <th style={styles.tableHeaderTh}>Rôle</th>
-                  <th style={styles.tableHeaderTh}>Téléphone</th>
-                  <th style={styles.tableHeaderTh}>Statut</th>
-                  <th style={styles.tableHeaderTh}>Date de création</th>
-                  <th style={styles.tableHeaderThAction}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} style={styles.tableRow}>
-                      <td style={styles.tableTdCheckbox}>
-                        <input
-                          type="checkbox"
-                          checked={selectedUserIds.includes(user.id)}
-                          onChange={() => handleSelectUser(user.id)}
-                          style={styles.checkbox}
-                        />
-                      </td>
-                      <td style={styles.tableTdId}>{user.id}</td>
-                      <td style={styles.tableTdUser}>
-                        <div style={styles.userInfoCell}>
-                          <div style={styles.userAvatar}>
-                            {user.prenom[0]}{user.nom[0]}
+            {isLoadingList ? (
+              <div style={styles.loaderContainer}>
+                <span style={styles.pageLoader}></span>
+                <p style={styles.loaderText}>Chargement des comptes...</p>
+              </div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.tableHeaderRow}>
+                    <th style={styles.tableHeaderThCheckbox}>
+                      <input
+                        type="checkbox"
+                        onChange={handleSelectAll}
+                        checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
+                        style={styles.checkbox}
+                      />
+                    </th>
+                    <th style={styles.tableHeaderTh}>Identifiant</th>
+                    <th style={styles.tableHeaderTh}>Utilisateur</th>
+                    <th style={styles.tableHeaderTh}>Rôle</th>
+                    <th style={styles.tableHeaderTh}>Téléphone</th>
+                    <th style={styles.tableHeaderTh}>Statut</th>
+                    <th style={styles.tableHeaderTh}>Date de création</th>
+                    <th style={styles.tableHeaderThAction}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} style={styles.tableRow}>
+                        <td style={styles.tableTdCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={selectedUserIds.includes(user.id)}
+                            onChange={() => handleSelectUser(user.id)}
+                            style={styles.checkbox}
+                          />
+                        </td>
+                        <td style={styles.tableTdId}>{user.id}</td>
+                        <td style={styles.tableTdUser}>
+                          <div style={styles.userInfoCell}>
+                            <div style={styles.userAvatar}>
+                              {user.prenom[0]}{user.nom[0]}
+                            </div>
+                            <div>
+                              <div style={styles.userNameText}>{user.prenom} {user.nom}</div>
+                              <div style={styles.userEmailText}>{user.email}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div style={styles.userNameText}>{user.prenom} {user.nom}</div>
-                            <div style={styles.userEmailText}>{user.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={styles.tableTd}>
-                        <span 
-                          style={{
-                            ...styles.roleBadge,
-                            backgroundColor: 
-                              user.role === 'Administrateur' ? '#eff6ff' :
-                              user.role === 'Agent' ? '#f0fdf4' : '#faf5ff',
-                            color: 
-                              user.role === 'Administrateur' ? '#1e40af' :
-                              user.role === 'Agent' ? '#166534' : '#6b21a8'
-                          }}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
-                      <td style={styles.tableTdPhone}>{user.telephone}</td>
-                      <td style={styles.tableTd}>
-                        <div style={styles.statusCell}>
+                        </td>
+                        <td style={styles.tableTd}>
                           <span 
                             style={{
-                              ...styles.statusDot,
+                              ...styles.roleBadge,
                               backgroundColor: 
-                                user.status === 'Actif' ? '#10b981' :
-                                user.status === 'Bloqué' ? '#f59e0b' : '#ef4444'
+                                user.role === 'Administrateur' ? '#eff6ff' :
+                                user.role === 'Agent' ? '#f0fdf4' : '#faf5ff',
+                              color: 
+                                user.role === 'Administrateur' ? '#1e40af' :
+                                user.role === 'Agent' ? '#166534' : '#6b21a8'
                             }}
-                          ></span>
-                          <span style={styles.statusText}>{user.status}</span>
-                        </div>
-                      </td>
-                      <td style={styles.tableTdDate}>{user.date}</td>
-                      <td style={styles.tableTdAction}>
-                        <div style={styles.actionCell}>
-                          {user.status !== 'Supprimé' && (
-                            <>
-                              <button
-                                style={styles.iconBtn}
-                                onClick={() => handleToggleStatus(user.id, user.status)}
-                                title={user.status === 'Actif' ? 'Bloquer le compte' : 'Activer le compte'}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#475569' }}>
-                                  {user.status === 'Actif' ? 'block' : 'check_circle'}
-                                </span>
-                              </button>
-                              <button
-                                style={styles.iconBtn}
-                                onClick={() => handleDeleteUser(user.id)}
-                                title="Supprimer l'utilisateur"
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>
-                                  delete
-                                </span>
-                              </button>
-                            </>
-                          )}
-                        </div>
+                          >
+                            {user.role}
+                          </span>
+                        </td>
+                        <td style={styles.tableTdPhone}>{user.telephone}</td>
+                        <td style={styles.tableTd}>
+                          <div style={styles.statusCell}>
+                            <span 
+                              style={{
+                                ...styles.statusDot,
+                                backgroundColor: 
+                                  user.status === 'Actif' ? '#10b981' :
+                                  user.status === 'Bloqué' ? '#f59e0b' : '#ef4444'
+                              }}
+                            ></span>
+                            <span style={styles.statusText}>{user.status}</span>
+                          </div>
+                        </td>
+                        <td style={styles.tableTdDate}>{user.date}</td>
+                        <td style={styles.tableTdAction}>
+                          <div style={styles.actionCell}>
+                            {user.status !== 'Supprimé' && (
+                              <>
+                                <button
+                                  style={styles.iconBtn}
+                                  onClick={() => handleToggleStatus(user.id, user.status)}
+                                  title={user.status === 'Actif' ? 'Bloquer le compte' : 'Activer le compte'}
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#475569' }}>
+                                    {user.status === 'Actif' ? 'block' : 'check_circle'}
+                                  </span>
+                                </button>
+                                <button
+                                  style={styles.iconBtn}
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  title="Supprimer l'utilisateur"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>
+                                    delete
+                                  </span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="8" style={styles.tableEmptyCell}>
+                        Aucun utilisateur trouvé correspondant aux filtres.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" style={styles.tableEmptyCell}>
-                      Aucun utilisateur trouvé correspondant aux filtres.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
 
@@ -692,6 +840,28 @@ const styles = {
     flexDirection: 'column',
     gap: '2rem',
   },
+  offlineNotice: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.875rem 1.25rem',
+    backgroundColor: '#fffbeb',
+    border: '1px solid #fef3c7',
+    borderRadius: '12px',
+    color: '#b45309',
+  },
+  offlineIcon: {
+    fontSize: '24px',
+    color: '#d97706',
+  },
+  offlineTitle: {
+    fontSize: '0.875rem',
+    fontWeight: 700,
+  },
+  offlineText: {
+    fontSize: '0.8rem',
+    marginTop: '0.125rem',
+  },
   pageHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -850,6 +1020,24 @@ const styles = {
   },
   tableResponsive: {
     overflowX: 'auto',
+  },
+  loaderContainer: {
+    padding: '3rem',
+    textAlign: 'center',
+  },
+  pageLoader: {
+    display: 'inline-block',
+    width: '32px',
+    height: '32px',
+    border: '3px solid rgba(37, 99, 235, 0.1)',
+    borderTop: '3px solid #2563eb',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loaderText: {
+    marginTop: '0.75rem',
+    fontSize: '0.85rem',
+    color: '#64748b',
   },
   table: {
     width: '100%',
