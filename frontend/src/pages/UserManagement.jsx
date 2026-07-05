@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CreateUserModal from '../components/CreateUserModal';
 import ImportCsvModal from '../components/ImportCsvModal';
 import './UserManagement.css';
@@ -39,7 +39,7 @@ function UserManagement() {
   }, []);
 
   // Fetch users from the Node.js API
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoadingList(true);
     try {
       const response = await fetch(`${API_BASE_URL}/users`);
@@ -51,7 +51,7 @@ function UserManagement() {
         throw new Error("Réponse serveur incorrecte");
       }
     } catch (err) {
-      console.warn("API Backend inaccessible. Mode démo local activé.");
+      console.warn("API Backend inaccessible. Mode démo local activé.", err);
       setIsOffline(true);
       if (users.length === 0) {
         setUsers(FALLBACK_USERS);
@@ -59,11 +59,11 @@ function UserManagement() {
     } finally {
       setIsLoadingList(false);
     }
-  };
+  }, [users.length]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // Compute Statistics
   const getStats = (role) => {

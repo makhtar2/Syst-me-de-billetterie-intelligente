@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CreatePlanModal from '../components/CreatePlanModal';
 import './UserManagement.css'; // Reuses table/modal skeleton structures
 import './SubscriptionManagement.css'; // Plan grids specific styling
@@ -36,7 +36,7 @@ function SubscriptionManagement() {
     }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [plansRes, contractsRes] = await Promise.all([
@@ -54,18 +54,18 @@ function SubscriptionManagement() {
         throw new Error("Erreur de récupération serveur");
       }
     } catch (err) {
-      console.warn("API Abonnements non détectée. Passage en mode démo local.");
+      console.warn("API Abonnements non détectée. Passage en mode démo local.", err);
       setIsOffline(true);
       if (plans.length === 0) setPlans(FALLBACK_PLANS);
       if (contracts.length === 0) setContracts(FALLBACK_CONTRACTS);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [plans.length, contracts.length]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Compute Revenue and Subscription metrics
   const activeContracts = contracts.filter(c => c.status === 'Actif');
@@ -308,61 +308,68 @@ function SubscriptionManagement() {
 
           <div className="table-card">
             <div className="table-responsive">
-              <table className="user-table">
-                <thead>
-                  <tr className="table-header-row">
-                    <th className="table-header-th">Client</th>
-                    <th className="table-header-th">Formule souscrite</th>
-                    <th className="table-header-th">Date de début</th>
-                    <th className="table-header-th">Date d'expiration</th>
-                    <th className="table-header-th">Trajets restants</th>
-                    <th className="table-header-th">Statut</th>
-                    <th className="table-header-th-action">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredContracts.length > 0 ? (
-                    filteredContracts.map((contract) => (
-                      <tr key={contract.id} className="table-row">
-                        <td className="table-td-user">
-                          <div className="user-name-text">{contract.clientName}</div>
-                          <div className="user-email-text">{contract.clientEmail}</div>
-                        </td>
-                        <td className="table-td" style={{ fontWeight: 600, color: '#1e3a8a' }}>
-                          {contract.planName}
-                        </td>
-                        <td className="table-td">{contract.dateDebut}</td>
-                        <td className="table-td">{contract.dateFin}</td>
-                        <td className="table-td" style={{ fontWeight: 600 }}>
-                          {contract.tripsLeft}
-                        </td>
-                        <td className="table-td">
-                          <span className={`contract-status-badge ${contract.status.toLowerCase()}`}>
-                            {contract.status}
-                          </span>
-                        </td>
-                        <td className="table-td-action">
-                          {contract.status !== 'Expiré' && (
-                            <button
-                              className="btn-secondary"
-                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                              onClick={() => handleToggleContractStatus(contract.id, contract.status)}
-                            >
-                              {contract.status === 'Actif' ? 'Suspendre' : 'Réactiver'}
-                            </button>
-                          )}
+              {isLoading ? (
+                <div className="loader-container">
+                  <span className="page-loader"></span>
+                  <p className="loader-text">Chargement des abonnements...</p>
+                </div>
+              ) : (
+                <table className="user-table">
+                  <thead>
+                    <tr className="table-header-row">
+                      <th className="table-header-th">Client</th>
+                      <th className="table-header-th">Formule souscrite</th>
+                      <th className="table-header-th">Date de début</th>
+                      <th className="table-header-th">Date d'expiration</th>
+                      <th className="table-header-th">Trajets restants</th>
+                      <th className="table-header-th">Statut</th>
+                      <th className="table-header-th-action">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContracts.length > 0 ? (
+                      filteredContracts.map((contract) => (
+                        <tr key={contract.id} className="table-row">
+                          <td className="table-td-user">
+                            <div className="user-name-text">{contract.clientName}</div>
+                            <div className="user-email-text">{contract.clientEmail}</div>
+                          </td>
+                          <td className="table-td" style={{ fontWeight: 600, color: '#1e3a8a' }}>
+                            {contract.planName}
+                          </td>
+                          <td className="table-td">{contract.dateDebut}</td>
+                          <td className="table-td">{contract.dateFin}</td>
+                          <td className="table-td" style={{ fontWeight: 600 }}>
+                            {contract.tripsLeft}
+                          </td>
+                          <td className="table-td">
+                            <span className={`contract-status-badge ${contract.status.toLowerCase()}`}>
+                              {contract.status}
+                            </span>
+                          </td>
+                          <td className="table-td-action">
+                            {contract.status !== 'Expiré' && (
+                              <button
+                                className="btn-secondary"
+                                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                                onClick={() => handleToggleContractStatus(contract.id, contract.status)}
+                              >
+                                {contract.status === 'Actif' ? 'Suspendre' : 'Réactiver'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="table-empty-cell">
+                          Aucun abonnement trouvé.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="table-empty-cell">
-                        Aucun abonnement trouvé.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </section>

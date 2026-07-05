@@ -8,6 +8,14 @@ function DashboardLayout() {
 
   return (
     <div className="dashboard-container">
+      {/* Gemini Background Depth */}
+      <div className="gemini-bg" />
+      <div className="gemini-aura">
+        <div className="aura-spot spot-1" />
+        <div className="aura-spot spot-2" />
+        <div className="aura-spot spot-3" />
+      </div>
+
       {/* Centralized Top Navbar */}
       <header className="navbar">
         <div className="nav-brand">
