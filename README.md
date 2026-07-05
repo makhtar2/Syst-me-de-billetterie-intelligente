@@ -10,6 +10,14 @@ Un système de billetterie et de gestion de transport moderne avec génération 
 
 ---
 
+## 📚 Documentation & Plans
+
+Pour guider le développement collaboratif et suivre les étapes du projet :
+* 📘 **[Guide de Contribution](CONTRIBUTING.md)** : Règles pour la gestion des branches, messages de commits, normes de codage et de sécurité.
+* 📝 **[Plan d'Implémentation - Service Utilisateurs](docs/plan_service_utilisateurs.md)** : Spécifications, schémas MongoDB, endpoints d'API et structure React pour la première phase.
+
+---
+
 ## 📋 Contexte et Objectifs
 
 Une entreprise de transport souhaite digitaliser son système de billetterie. L'application permet :
