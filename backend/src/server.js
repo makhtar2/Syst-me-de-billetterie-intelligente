@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,15 @@ app.get('/api/status', (req, res) => {
     timestamp: new Date(),
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Routes du Service Utilisateurs (gestion administrative)
+app.use('/api/admin', adminRoutes);
+
+// Middleware global de gestion des erreurs (ex. erreurs Multer)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ message: err.message || 'Erreur serveur' });
 });
 
 // Port configuration
