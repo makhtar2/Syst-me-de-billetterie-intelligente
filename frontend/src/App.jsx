@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import UserManagement from './pages/UserManagement.jsx';
+import SubscriptionManagement from './pages/SubscriptionManagement.jsx';
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="/subscriptions" element={<SubscriptionManagement />} />
         {/* Redirect any other path to /login for now */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
