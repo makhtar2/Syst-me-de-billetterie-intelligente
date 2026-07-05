@@ -164,22 +164,8 @@ function SubscriptionManagement() {
   };
 
   return (
-    <div className="sub-container dashboard-container">
-      {/* Top Navbar */}
-      <header className="navbar">
-        <div className="nav-brand">
-          <span className="material-symbols-outlined nav-brand-icon">
-            local_activity
-          </span>
-          <span className="nav-brand-text">Billetterie Intelligente</span>
-        </div>
-        <div className="nav-user">
-          <div className="nav-user-avatar">A</div>
-          <span className="nav-user-name">Administrateur</span>
-        </div>
-      </header>
-
-      <main className="sub-main main-content">
+    <>
+      <main className="main-content">
         {/* Offline Warning Notice */}
         {isOffline && (
           <div className="offline-notice">
@@ -388,7 +374,7 @@ function SubscriptionManagement() {
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreatePlan}
       />
-    </div>
+    </>
   );
 }
 

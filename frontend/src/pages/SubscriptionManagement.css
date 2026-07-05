@@ -1,4 +1,6 @@
-/* Subscription Management Stylesheet */
+@import "../styles/dashboard.css";
+
+/* Subscription Management Specific Stylesheet */
 
 .sub-container {
   min-height: 100vh;

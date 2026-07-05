@@ -3,14 +3,21 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login.jsx';
 import UserManagement from './pages/UserManagement.jsx';
 import SubscriptionManagement from './pages/SubscriptionManagement.jsx';
+import DashboardLayout from './components/DashboardLayout.jsx';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/subscriptions" element={<SubscriptionManagement />} />
+        
+        {/* Admin Dashboard Protected Layout */}
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/users" replace />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="subscriptions" element={<SubscriptionManagement />} />
+        </Route>
+
         {/* Redirect any other path to /login for now */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
