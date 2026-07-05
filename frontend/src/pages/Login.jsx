@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -8,19 +7,22 @@ function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Track input focus states for premium Figma-like active rings
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   // SEO Optimization - Title and Meta Description
   useEffect(() => {
     document.title = "Connexion - Système de Billetterie Intelligente";
     
-    // Update or create meta description
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
       metaDesc = document.createElement('meta');
       metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.content = "Connectez-vous à la plateforme de billetterie intelligente pour gérer vos transports, tickets et abonnements.";
+    metaDesc.content = "Portail de connexion sécurisé pour le Système de Billetterie Intelligente. Gérer vos voyages, tickets et abonnements.";
   }, []);
 
   const handleSubmit = (e) => {
@@ -29,63 +31,79 @@ function Login() {
     setSuccess(false);
 
     if (!email) {
-      setError("L'adresse email ou l'identifiant est obligatoire.");
+      setError("Veuillez saisir votre adresse email ou votre identifiant.");
       return;
     }
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      setError("Le mot de passe doit comporter au moins 6 caractères.");
       return;
     }
 
     setIsLoading(true);
 
-    // Mock API call to simulate login flow
+    // Simulate API Auth Request
     setTimeout(() => {
       setIsLoading(false);
       setSuccess(true);
-      console.log('Connexion réussie avec :', email);
+      console.log('Utilisateur connecté :', email);
     }, 1500);
   };
 
   return (
     <div style={styles.loginContainer}>
       <div style={styles.loginCard}>
-        {/* Header Section */}
+        {/* Brand & Logo Section */}
         <div style={styles.header}>
-          <div style={styles.logoContainer}>
-            <span style={styles.logoIcon}>🎟️</span>
+          <div style={styles.logoBadge}>
+            <span className="material-symbols-outlined" style={styles.logoIcon}>
+              local_activity
+            </span>
           </div>
           <h1 id="login-title" style={styles.title}>Billetterie Intelligente</h1>
-          <p style={styles.subtitle}>Connectez-vous pour accéder à votre espace sécurisé</p>
+          <p style={styles.subtitle}>Connectez-vous pour accéder à votre tableau de bord</p>
         </div>
 
-        {/* Status Messages */}
+        {/* Action Alerts */}
         {error && (
           <div id="login-error" style={styles.errorAlert}>
-            <AlertCircle size={18} style={{ minWidth: '18px' }} />
-            <span>{error}</span>
+            <span className="material-symbols-outlined" style={styles.alertIcon}>
+              error
+            </span>
+            <span style={styles.alertText}>{error}</span>
           </div>
         )}
 
         {success && (
           <div id="login-success" style={styles.successAlert}>
-            <CheckCircle size={18} style={{ minWidth: '18px' }} />
-            <span>Connexion réussie ! Redirection en cours...</span>
+            <span className="material-symbols-outlined" style={styles.alertIcon}>
+              check_circle
+            </span>
+            <span style={styles.alertText}>Authentification réussie. Redirection...</span>
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Input Form */}
         <form onSubmit={handleSubmit} style={styles.form} noValidate>
           <div style={styles.inputGroup}>
-            <label htmlFor="login-email" style={styles.label}>Adresse Email ou Identifiant</label>
-            <div style={styles.inputWrapper}>
-              <Mail size={18} style={styles.inputIcon} />
+            <label htmlFor="login-email" style={styles.label}>Adresse email ou Identifiant</label>
+            <div 
+              style={{
+                ...styles.inputWrapper,
+                borderColor: isEmailFocused ? '#2563eb' : 'rgba(0, 0, 0, 0.08)',
+                boxShadow: isEmailFocused ? '0 0 0 4px rgba(37, 99, 235, 0.1)' : 'none'
+              }}
+            >
+              <span className="material-symbols-outlined" style={styles.inputIcon}>
+                alternate_email
+              </span>
               <input
                 id="login-email"
                 type="email"
-                placeholder="nom@exemple.com"
+                placeholder="nom@entreprise.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setIsEmailFocused(true)}
+                onBlur={() => setIsEmailFocused(false)}
                 disabled={isLoading || success}
                 style={styles.input}
                 required
@@ -94,18 +112,28 @@ function Login() {
           </div>
 
           <div style={styles.inputGroup}>
-            <div style={styles.passwordLabelRow}>
+            <div style={styles.labelRow}>
               <label htmlFor="login-password" style={styles.label}>Mot de passe</label>
-              <a href="#forgot-password" style={styles.forgotLink}>Mot de passe oublié ?</a>
+              <a href="#forgot-password" style={styles.forgotLink}>Oublié ?</a>
             </div>
-            <div style={styles.inputWrapper}>
-              <Lock size={18} style={styles.inputIcon} />
+            <div 
+              style={{
+                ...styles.inputWrapper,
+                borderColor: isPasswordFocused ? '#2563eb' : 'rgba(0, 0, 0, 0.08)',
+                boxShadow: isPasswordFocused ? '0 0 0 4px rgba(37, 99, 235, 0.1)' : 'none'
+              }}
+            >
+              <span className="material-symbols-outlined" style={styles.inputIcon}>
+                lock
+              </span>
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
                 disabled={isLoading || success}
                 style={styles.input}
                 required
@@ -118,7 +146,9 @@ function Login() {
                 aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                 disabled={isLoading || success}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <span className="material-symbols-outlined" style={styles.eyeIcon}>
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
               </button>
             </div>
           </div>
@@ -129,7 +159,7 @@ function Login() {
             disabled={isLoading || success}
             style={{
               ...styles.submitBtn,
-              opacity: (isLoading || success) ? 0.7 : 1,
+              opacity: (isLoading || success) ? 0.8 : 1,
               cursor: (isLoading || success) ? 'not-allowed' : 'pointer'
             }}
           >
@@ -138,16 +168,18 @@ function Login() {
             ) : (
               <>
                 Se connecter
-                <ArrowRight size={18} />
+                <span className="material-symbols-outlined" style={styles.btnIcon}>
+                  arrow_forward
+                </span>
               </>
             )}
           </button>
         </form>
 
-        {/* Footer info */}
+        {/* Footer Branding */}
         <div style={styles.footer}>
           <p style={styles.footerText}>
-            Plateforme de gestion de transport urbain.
+            Plateforme Sécurisée de Billetterie & Transport 
           </p>
         </div>
       </div>
@@ -155,7 +187,6 @@ function Login() {
   );
 }
 
-// Inline styles for ultra-modern light theme
 const styles = {
   loginContainer: {
     display: 'flex',
@@ -164,25 +195,27 @@ const styles = {
     minHeight: '100vh',
     width: '100%',
     padding: '1.5rem',
-    backgroundColor: '#f8fafc', // Ultra clean slate light background
+    backgroundColor: '#ffffff', // Clean white theme background
     backgroundImage: `
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 45%),
-      radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.15) 0px, transparent 45%)
+      radial-gradient(at 0% 0%, #eff6ff 0px, transparent 50%),
+      radial-gradient(at 100% 100%, #dbeafe 0px, transparent 50%)
     `,
   },
   loginCard: {
     width: '100%',
-    maxWidth: '440px',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // Light glassmorphic card
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(226, 232, 240, 0.8)',
-    borderRadius: '16px', // smooth radius
-    padding: '2.5rem 2.25rem',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(99, 102, 241, 0.08)',
+    maxWidth: '400px',
+    backgroundColor: '#ffffff',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    borderRadius: '16px',
+    padding: '2.5rem 2rem',
+    boxShadow: `
+      0 1px 3px rgba(0, 0, 0, 0.02),
+      0 10px 15px -3px rgba(0, 0, 0, 0.03),
+      0 4px 6px -4px rgba(0, 0, 0, 0.03)
+    `,
     display: 'flex',
     flexDirection: 'column',
     gap: '1.5rem',
-    transition: 'all 0.3s ease',
   },
   header: {
     display: 'flex',
@@ -190,54 +223,61 @@ const styles = {
     alignItems: 'center',
     textAlign: 'center',
   },
-  logoContainer: {
-    width: '56px',
-    height: '56px',
+  logoBadge: {
+    width: '48px',
+    height: '48px',
     borderRadius: '12px',
-    background: 'linear-gradient(135deg, #6366f1, #06b6d4)', // Soft violet-cyan gradient
+    backgroundColor: '#eff6ff',
+    border: '1px solid #bfdbfe',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '1rem',
-    boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)',
   },
   logoIcon: {
-    fontSize: '1.75rem',
+    fontSize: '24px',
+    color: '#2563eb', // Royal blue accent
   },
   title: {
     fontFamily: 'Outfit, sans-serif',
-    fontSize: '1.625rem',
-    fontWeight: 800,
+    fontSize: '1.5rem',
+    fontWeight: 700,
     letterSpacing: '-0.02em',
-    color: '#0f172a', // Deep slate for primary typography
-    marginBottom: '0.375rem',
+    color: '#1e3a8a', // Deep navy/blue title
+    marginBottom: '0.25rem',
   },
   subtitle: {
-    fontSize: '0.875rem',
-    color: '#475569', // Medium slate for body/subtitle
+    fontSize: '0.85rem',
+    color: '#64748b', // Slate-500
     lineHeight: '1.4',
   },
   errorAlert: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem',
+    gap: '0.625rem',
     padding: '0.75rem 1rem',
     borderRadius: '8px',
-    backgroundColor: '#fef2f2', // Light red bg
+    backgroundColor: '#fef2f2',
     border: '1px solid #fecaca',
-    color: '#b91c1c', // Dark red text
-    fontSize: '0.85rem',
+    color: '#991b1b',
   },
   successAlert: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem',
+    gap: '0.625rem',
     padding: '0.75rem 1rem',
     borderRadius: '8px',
-    backgroundColor: '#ecfdf5', // Light green bg
-    border: '1px solid #a7f3d0',
-    color: '#047857', // Dark green text
-    fontSize: '0.85rem',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    color: '#166534',
+  },
+  alertIcon: {
+    fontSize: '20px',
+    flexShrink: 0,
+  },
+  alertText: {
+    fontSize: '0.8rem',
+    fontWeight: 500,
   },
   form: {
     display: 'flex',
@@ -247,46 +287,48 @@ const styles = {
   inputGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.4rem',
+    gap: '0.375rem',
   },
   label: {
-    fontSize: '0.825rem',
+    fontSize: '0.8rem',
     fontWeight: 600,
     color: '#334155', // Slate-700
   },
-  passwordLabelRow: {
+  labelRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   forgotLink: {
     fontSize: '0.75rem',
-    color: '#4f46e5', // Indigo link
+    color: '#2563eb',
     fontWeight: 500,
     textDecoration: 'none',
-    transition: 'color 0.2s ease',
   },
   inputWrapper: {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    borderRadius: '8px',
+    backgroundColor: '#f8fafc',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   inputIcon: {
     position: 'absolute',
     left: '0.875rem',
-    color: '#94a3b8', // Muted slate-400
+    color: '#64748b',
+    fontSize: '20px',
     pointerEvents: 'none',
   },
   input: {
     width: '100%',
-    padding: '0.7rem 1rem 0.7rem 2.5rem',
-    backgroundColor: '#ffffff', // Clean white background for inputs
-    border: '1px solid #cbd5e1', // Light gray border
-    borderRadius: '8px',
-    color: '#0f172a', // Dark text inside input
+    padding: '0.625rem 2.5rem 0.625rem 2.5rem',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#0f172a',
     fontFamily: 'var(--font-sans)',
-    fontSize: '0.9rem',
-    transition: 'all 0.2s ease',
+    fontSize: '0.875rem',
     outline: 'none',
   },
   eyeButton: {
@@ -294,29 +336,34 @@ const styles = {
     right: '0.75rem',
     background: 'none',
     border: 'none',
-    color: '#94a3b8',
+    color: '#64748b',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '0.25rem',
-    transition: 'color 0.2s ease',
+  },
+  eyeIcon: {
+    fontSize: '20px',
   },
   submitBtn: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
-    padding: '0.8rem',
-    background: 'linear-gradient(135deg, #4f46e5, #6366f1)', // Modern Indigo/Purple gradient
+    padding: '0.75rem',
+    backgroundColor: '#2563eb', // Clean primary blue
     color: '#ffffff',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '0.925rem',
+    fontSize: '0.875rem',
     fontWeight: 600,
-    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.15)',
+    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.06)',
     transition: 'all 0.2s ease',
     marginTop: '0.5rem',
+  },
+  btnIcon: {
+    fontSize: '18px',
   },
   loader: {
     width: '18px',
@@ -328,11 +375,12 @@ const styles = {
   },
   footer: {
     textAlign: 'center',
-    marginTop: '0.5rem',
+    marginTop: '0.25rem',
   },
   footerText: {
-    fontSize: '0.75rem',
-    color: '#64748b', // Slate-500
+    fontSize: '0.7rem',
+    color: '#94a3b8',
+    fontWeight: 500,
   }
 };
 
