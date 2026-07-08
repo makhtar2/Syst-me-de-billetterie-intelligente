@@ -53,27 +53,14 @@ export const createUser = async (req, res) => {
   }
 };
 
-// GET /api/admin/users — Liste filtrée / recherchable + pagination
+// GET /api/admin/users — Liste filtrée / recherchable (renvoie un tableau)
 export const getUsers = async (req, res) => {
   try {
     const { role, status, search } = req.query;
-    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
-
     const filter = buildUserFilter({ role, status, search });
 
-    const [users, total] = await Promise.all([
-      User.find(filter)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit),
-      User.countDocuments(filter),
-    ]);
-
-    return res.status(200).json({
-      users,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-    });
+    const users = await User.find(filter).sort({ createdAt: -1 });
+    return res.status(200).json(users);
   } catch (error) {
     return res.status(500).json({ message: 'Erreur lors de la récupération', error: error.message });
   }
@@ -129,56 +116,77 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// Applique une action de statut à un utilisateur. Retourne le résultat.
-const applyStatusAction = async (user, action) => {
-  switch (action) {
-    case 'Activer': {
-      const tempPassword = generateTempPassword();
-      user.password = tempPassword; // le hook pre('save') s'occupe du hachage
-      user.status = 'Actif';
-      user.mustChangePassword = true;
-      await user.save();
-      const emailResult = await sendActivationEmail(user, tempPassword);
-      return { id: user._id, status: user.status, emailSent: emailResult.sent };
-    }
-    case 'Bloquer':
-      user.status = 'Bloqué';
-      await user.save();
-      return { id: user._id, status: user.status };
-    case 'Supprimer':
-      user.status = 'Supprimé';
-      await user.save();
-      return { id: user._id, status: user.status };
-    default:
-      return { id: user._id, error: 'Action inconnue' };
+// Statuts valides et mapping des verbes d'action vers un statut cible.
+// Le front envoie directement le statut ('Actif' | 'Bloqué' | 'Supprimé') ;
+// on accepte aussi les verbes ('Activer' | 'Bloquer' | 'Supprimer') par robustesse.
+const STATUTS = ['Actif', 'Bloqué', 'Supprimé'];
+const VERBE_VERS_STATUT = { Activer: 'Actif', Bloquer: 'Bloqué', Supprimer: 'Supprimé' };
+
+const normaliserStatutCible = (valeur) => VERBE_VERS_STATUT[valeur] || valeur;
+
+// Applique un statut cible à un utilisateur.
+// Passer à 'Actif' déclenche l'activation : mot de passe temporaire + email.
+const setUserStatus = async (user, targetStatus) => {
+  if (targetStatus === 'Actif') {
+    const tempPassword = generateTempPassword();
+    user.password = tempPassword; // le hook pre('save') s'occupe du hachage
+    user.status = 'Actif';
+    user.mustChangePassword = true;
+    await user.save();
+    const emailResult = await sendActivationEmail(user, tempPassword);
+    return { id: user.id, status: user.status, emailSent: emailResult.sent };
   }
+
+  user.status = targetStatus;
+  await user.save();
+  return { id: user.id, status: user.status };
 };
 
-// PATCH /api/admin/users/bulk-status — Actions groupées (Activer/Bloquer/Supprimer)
+// PATCH /api/admin/users/bulk-status — Actions groupées
 export const bulkUpdateStatus = async (req, res) => {
   try {
     const { userIds, action } = req.body;
-    const allowed = ['Activer', 'Bloquer', 'Supprimer'];
+    const targetStatus = normaliserStatutCible(action);
 
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({ message: 'userIds doit être un tableau non vide' });
     }
-    if (!allowed.includes(action)) {
-      return res.status(400).json({ message: `Action invalide. Valeurs autorisées : ${allowed.join(', ')}` });
+    if (!STATUTS.includes(targetStatus)) {
+      return res.status(400).json({ message: `Action invalide. Valeurs autorisées : ${STATUTS.join(', ')}` });
     }
 
     const users = await User.find({ _id: { $in: userIds } });
     const results = [];
     for (const user of users) {
-      results.push(await applyStatusAction(user, action));
+      results.push(await setUserStatus(user, targetStatus));
     }
 
     return res.status(200).json({
-      message: `Action "${action}" appliquée à ${results.length} utilisateur(s)`,
+      message: `Statut "${targetStatus}" appliqué à ${results.length} utilisateur(s)`,
       results,
     });
   } catch (error) {
     return res.status(500).json({ message: "Erreur lors de l'action groupée", error: error.message });
+  }
+};
+
+// PATCH /api/admin/users/:id/status — Modifier le statut d'un utilisateur
+export const updateUserStatus = async (req, res) => {
+  try {
+    const targetStatus = normaliserStatutCible(req.body.status);
+    if (!STATUTS.includes(targetStatus)) {
+      return res.status(400).json({ message: `Statut invalide. Valeurs autorisées : ${STATUTS.join(', ')}` });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur introuvable' });
+    }
+
+    const result = await setUserStatus(user, targetStatus);
+    return res.status(200).json({ message: 'Statut mis à jour', ...result, user });
+  } catch (error) {
+    return res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error: error.message });
   }
 };
 
