@@ -83,6 +83,7 @@ export const importUsers = async (req, res) => {
 
     return res.status(200).json({
       message: `Importation terminée : ${summary.imported} créé(s), ${summary.skipped} ignoré(s)`,
+      count: summary.imported, // champ attendu par le front
       summary,
     });
   } catch (error) {
