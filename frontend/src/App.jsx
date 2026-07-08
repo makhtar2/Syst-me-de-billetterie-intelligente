@@ -15,7 +15,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/users" replace />} />
           <Route path="users" element={<UserManagement />} />
-          <Route path="subscriptions" element={<SubscriptionManagement />} />
+          <Route path="subscriptions" element={<Navigate to="/users" replace />} />
         </Route>
 
         {/* Redirect any other path to /login for now */}

@@ -57,13 +57,6 @@ function DashboardLayout() {
               <span className="material-symbols-outlined">group</span>
               Utilisateurs
             </Link>
-            <Link 
-              to="/subscriptions" 
-              className={`nav-link-item ${currentPath === '/subscriptions' ? 'active' : ''}`}
-            >
-              <span className="material-symbols-outlined">card_membership</span>
-              Abonnements
-            </Link>
           </nav>
 
           {user && (
