@@ -6,6 +6,7 @@ import {
   updateUser,
   deleteUser,
   bulkUpdateStatus,
+  updateUserStatus,
   getDashboardStats,
 } from '../controllers/userController.js';
 import { importUsers } from '../controllers/importController.js';
@@ -26,6 +27,7 @@ router.patch('/users/bulk-status', bulkUpdateStatus);
 
 // CRUD utilisateurs
 router.route('/users').post(createUser).get(getUsers);
+router.patch('/users/:id/status', updateUserStatus);
 router.route('/users/:id').get(getUserById).put(updateUser).delete(deleteUser);
 
 export default router;
