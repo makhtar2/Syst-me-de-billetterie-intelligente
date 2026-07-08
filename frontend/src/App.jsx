@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import UserManagement from './pages/UserManagement.jsx';
-import SubscriptionManagement from './pages/SubscriptionManagement.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
 
 function App() {
