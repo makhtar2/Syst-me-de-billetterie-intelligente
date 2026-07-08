@@ -73,8 +73,14 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Ne jamais exposer le mot de passe dans les réponses JSON
+// Champ "date" (date de création formatée AAAA-MM-JJ) attendu par le front
+UserSchema.virtual('date').get(function () {
+  return this.createdAt ? this.createdAt.toISOString().split('T')[0] : '';
+});
+
+// Sérialisation JSON : inclut les virtuals (id, date) et masque le mot de passe
 UserSchema.set('toJSON', {
+  virtuals: true, // expose "id" (string) et "date" en plus de "_id"
   transform: (_doc, ret) => {
     delete ret.password;
     delete ret.__v;
