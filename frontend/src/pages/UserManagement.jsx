@@ -10,6 +10,9 @@ function UserManagement() {
   const [isOffline, setIsOffline] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(false);
   
+  // Dashboard statistics state
+  const [stats, setStats] = useState(null);
+  
   // Search & Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('Tous');
@@ -31,7 +34,7 @@ function UserManagement() {
     }
   }, []);
 
-  // Fetch users from the Node.js API
+  // Fetch users and stats from the Node.js API
   const fetchUsers = useCallback(async () => {
     setIsLoadingList(true);
     try {
@@ -43,6 +46,14 @@ function UserManagement() {
       const data = await api.getUsers(params);
       setUsers(data);
       setIsOffline(false);
+      
+      // Fetch statistics
+      try {
+        const statsData = await api.getStats();
+        setStats(statsData.stats);
+      } catch (statsErr) {
+        console.warn("Impossible de récupérer les statistiques du backend.", statsErr);
+      }
     } catch (err) {
       console.error("API Backend inaccessible.", err);
       setIsOffline(true);
@@ -55,8 +66,8 @@ function UserManagement() {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Compute Statistics
-  const getStats = (role) => {
+  // Compute local fallback stats if backend stats are not loaded
+  const getLocalStats = (role) => {
     const filtered = role === 'Global' ? users : users.filter(u => u.role === role);
     return {
       total: filtered.length,
@@ -66,10 +77,32 @@ function UserManagement() {
     };
   };
 
-  const globalStats = getStats('Global');
-  const adminStats = getStats('Administrateur');
-  const agentStats = getStats('Agent');
-  const clientStats = getStats('Client');
+  const getRoleStats = (roleName) => {
+    if (stats && stats.byRole && stats.byRole[roleName]) {
+      return {
+        total: stats.byRole[roleName].total || 0,
+        actif: stats.byRole[roleName].Actif || 0,
+        bloque: stats.byRole[roleName].Bloqué || 0,
+      };
+    }
+    return getLocalStats(roleName);
+  };
+
+  const getGlobalStats = () => {
+    if (stats) {
+      return {
+        total: stats.total || 0,
+        actif: stats.byStatus?.Actif || 0,
+        bloque: stats.byStatus?.Bloqué || 0,
+      };
+    }
+    return getLocalStats('Global');
+  };
+
+  const globalStats = getGlobalStats();
+  const adminStats = getRoleStats('Administrateur');
+  const agentStats = getRoleStats('Agent');
+  const clientStats = getRoleStats('Client');
 
   // Filtered Users
   const filteredUsers = users.filter(user => {

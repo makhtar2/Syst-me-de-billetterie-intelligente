@@ -1,10 +1,32 @@
-import React from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getStoredUser, clearAuth, api } from '../services/api';
 import '../styles/dashboard.css';
 
 function DashboardLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    if (!storedUser) {
+      navigate('/login');
+    } else {
+      setUser(storedUser);
+    }
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      console.error(e);
+    }
+    clearAuth();
+    navigate('/login');
+  };
 
   return (
     <div className="dashboard-container">
@@ -44,10 +66,22 @@ function DashboardLayout() {
             </Link>
           </nav>
 
-          <div className="nav-user">
-            <div className="nav-user-avatar">A</div>
-            <span className="nav-user-name">Administrateur</span>
-          </div>
+          {user && (
+            <div className="nav-user">
+              <div className="nav-user-avatar">
+                {user.prenom ? user.prenom[0].toUpperCase() : 'U'}
+              </div>
+              <span className="nav-user-name">{user.prenom} {user.nom}</span>
+              <button 
+                onClick={handleLogout} 
+                className="icon-btn" 
+                title="Se déconnecter" 
+                style={{ color: '#ef4444', marginLeft: '0.5rem' }}
+              >
+                <span className="material-symbols-outlined">logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
