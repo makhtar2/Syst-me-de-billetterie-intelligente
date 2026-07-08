@@ -1,31 +1,36 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-export function auth(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Authentification requise' });
-  }
-
+// Vérifie le token JWT et attache l'utilisateur courant à req.user
+export const protect = async (req, res, next) => {
   try {
-    const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret');
-    req.userId = decoded.id;
-    next();
-  } catch {
-    return res.status(401).json({ message: 'Token invalide ou expiré' });
-  }
-}
-
-export async function isAdmin(req, res, next) {
-  try {
-    const user = await User.findById(req.userId);
-    if (!user || user.role !== 'Administrateur' || user.status !== 'Actif') {
-      return res.status(403).json({ message: 'Accès administrateur requis' });
+    const header = req.headers.authorization || '';
+    if (!header.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Non autorisé : token manquant' });
     }
+
+    const token = header.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.status === 'Supprimé') {
+      return res.status(401).json({ message: 'Non autorisé : utilisateur introuvable' });
+    }
+    if (user.status === 'Bloqué') {
+      return res.status(403).json({ message: 'Compte bloqué' });
+    }
+
     req.user = user;
     next();
-  } catch {
-    return res.status(500).json({ message: 'Erreur serveur' });
+  } catch (error) {
+    return res.status(401).json({ message: 'Non autorisé : token invalide' });
   }
-}
+};
+
+// Restreint l'accès aux administrateurs
+export const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'Administrateur') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Accès réservé aux administrateurs' });
+};

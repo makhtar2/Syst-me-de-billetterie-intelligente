@@ -2,9 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/users.js';
-import adminRoutes from './routes/admin.js';
+import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -23,10 +22,17 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
+// Routes du Service Utilisateurs
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Middleware global de gestion des erreurs (ex. erreurs Multer)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ message: err.message || 'Erreur serveur' });
+});
+
+// Port configuration
 const PORT = process.env.PORT || 5050;
 
 app.listen(PORT, () => {

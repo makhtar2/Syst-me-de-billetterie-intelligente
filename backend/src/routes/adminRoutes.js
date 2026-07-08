@@ -1,0 +1,33 @@
+import express from 'express';
+import {
+  createUser,
+  getUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  bulkUpdateStatus,
+  updateUserStatus,
+  getDashboardStats,
+} from '../controllers/userController.js';
+import { importUsers } from '../controllers/importController.js';
+import { uploadCsv } from '../middleware/upload.js';
+import { protect, isAdmin } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Toutes les routes de ce module sont réservées aux administrateurs
+router.use(protect, isAdmin);
+
+// Statistiques du tableau de bord
+router.get('/dashboard/stats', getDashboardStats);
+
+// Importation CSV et actions groupées (avant /:id pour éviter les collisions de route)
+router.post('/users/import', uploadCsv, importUsers);
+router.patch('/users/bulk-status', bulkUpdateStatus);
+
+// CRUD utilisateurs
+router.route('/users').post(createUser).get(getUsers);
+router.patch('/users/:id/status', updateUserStatus);
+router.route('/users/:id').get(getUserById).put(updateUser).delete(deleteUser);
+
+export default router;
