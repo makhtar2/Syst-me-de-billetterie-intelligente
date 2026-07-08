@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
 // Load environment variables
@@ -26,7 +27,8 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Routes du Service Utilisateurs (gestion administrative)
+// Routes du Service Utilisateurs
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Middleware global de gestion des erreurs (ex. erreurs Multer)
