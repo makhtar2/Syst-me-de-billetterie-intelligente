@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, setAuth } from '../services/api';
 import './Login.css';
 
 function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,12 +45,18 @@ function Login() {
 
     setIsLoading(true);
 
-    // Simulate API Auth Request
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await api.login(email, password);
+      setAuth(res.token, res.user);
       setSuccess(true);
-      console.log('Utilisateur connecté :', email);
-    }, 1500);
+      setTimeout(() => {
+        navigate('/'); 
+      }, 1000);
+    } catch (err) {
+      setError(err.message || 'Échec de connexion');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

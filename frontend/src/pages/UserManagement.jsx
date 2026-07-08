@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { api } from '../services/api';
 import CreateUserModal from '../components/CreateUserModal';
 import ImportCsvModal from '../components/ImportCsvModal';
 import './UserManagement.css';
-
-const API_BASE_URL = 'http://localhost:5050/api/admin';
-
-// Tiny mock dataset for local offline fallback/demo mode
-const FALLBACK_USERS = [
-  { id: 'USR-DEMO1', nom: 'Sow', prenom: 'Moussa', email: 'moussa.sow@email.com', telephone: '+221 77 123 45 67', role: 'Administrateur', status: 'Actif', date: '2026-05-12' },
-  { id: 'USR-DEMO2', nom: 'Diop', prenom: 'Fatou', email: 'fatou.diop@email.com', telephone: '+221 78 234 56 78', role: 'Agent', status: 'Bloqué', date: '2026-06-01' }
-];
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -42,24 +35,21 @@ function UserManagement() {
   const fetchUsers = useCallback(async () => {
     setIsLoadingList(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/users`);
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-        setIsOffline(false);
-      } else {
-        throw new Error("Réponse serveur incorrecte");
-      }
+      const params = {};
+      if (roleFilter !== 'Tous') params.role = roleFilter;
+      if (statusFilter !== 'Tous') params.status = statusFilter;
+      if (searchQuery) params.search = searchQuery;
+      
+      const data = await api.getUsers(params);
+      setUsers(data);
+      setIsOffline(false);
     } catch (err) {
-      console.warn("API Backend inaccessible. Mode démo local activé.", err);
+      console.error("API Backend inaccessible.", err);
       setIsOffline(true);
-      if (users.length === 0) {
-        setUsers(FALLBACK_USERS);
-      }
     } finally {
       setIsLoadingList(false);
     }
-  }, [users.length]);
+  }, [roleFilter, statusFilter, searchQuery]);
 
   useEffect(() => {
     fetchUsers();
@@ -112,159 +102,65 @@ function UserManagement() {
     }
   };
 
-  // Bulk Actions (API + Fallback)
+  // Bulk Actions
   const handleBulkAction = async (action) => {
     if (selectedUserIds.length === 0) return;
-    
-    if (!isOffline) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users/bulk-status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userIds: selectedUserIds, action })
-        });
-        if (response.ok) {
-          fetchUsers();
-          setSelectedUserIds([]);
-          return;
-        }
-      } catch (err) {
-        console.error("Échec de l'action groupée via API, repli local.", err);
-      }
+    try {
+      await api.bulkStatus(selectedUserIds, action);
+      fetchUsers();
+      setSelectedUserIds([]);
+    } catch (err) {
+      console.error("Échec de l'action groupée via API", err);
     }
-
-    // Offline local fallback
-    setUsers(users.map(user => {
-      if (selectedUserIds.includes(user.id)) {
-        return { ...user, status: action };
-      }
-      return user;
-    }));
-    setSelectedUserIds([]);
   };
 
-  // Single User Actions (API + Fallback)
+  // Single User Actions
   const handleToggleStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === 'Actif' ? 'Bloqué' : 'Actif';
-    
-    if (!isOffline) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users/${id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: nextStatus })
-        });
-        if (response.ok) {
-          fetchUsers();
-          return;
-        }
-      } catch (err) {
-        console.error("Échec modification statut via API, repli local.", err);
-      }
+    try {
+      await api.updateUserStatus(id, nextStatus);
+      fetchUsers();
+    } catch (err) {
+      console.error("Échec modification statut via API", err);
     }
-
-    // Fallback
-    setUsers(users.map(u => u.id === id ? { ...u, status: nextStatus } : u));
   };
 
   const handleDeleteUser = async (id) => {
-    if (!isOffline) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          fetchUsers();
-          return;
-        }
-      } catch (err) {
-        console.error("Échec de suppression via API, repli local.", err);
-      }
+    try {
+      await api.deleteUser(id);
+      fetchUsers();
+    } catch (err) {
+      console.error("Échec de suppression via API", err);
     }
-
-    // Fallback
-    setUsers(users.map(u => u.id === id ? { ...u, status: 'Supprimé' } : u));
   };
 
-  // Create User Handler (API + Fallback)
+  // Create User Handler
   const handleCreateUser = async (userData) => {
-    if (!isOffline) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/users`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData)
-        });
-        if (response.ok) {
-          fetchUsers();
-          setIsCreateModalOpen(false);
-          return;
-        }
-      } catch (err) {
-        console.error("Échec création utilisateur via API, repli local.", err);
-      }
+    try {
+      await api.createUser(userData);
+      fetchUsers();
+      setIsCreateModalOpen(false);
+    } catch (err) {
+      console.error("Échec création utilisateur via API", err);
     }
-
-    // Fallback local creation
-    const newId = `USR-0${users.length + 1}`;
-    const newUser = {
-      id: newId,
-      nom: userData.nom,
-      prenom: userData.prenom,
-      email: userData.email,
-      telephone: userData.telephone,
-      role: userData.role,
-      status: 'Bloqué',
-      date: new Date().toISOString().split('T')[0]
-    };
-
-    setUsers([newUser, ...users]);
-    setIsCreateModalOpen(false);
   };
 
-  // CSV Import Handler (API + Fallback)
+  // CSV Import Handler
   const handleCsvImport = async (file, onDone) => {
     setCsvSuccessMessage("Importation en cours...");
-
-    if (!isOffline) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch(`${API_BASE_URL}/users/import`, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (response.ok) {
-          const resData = await response.json();
-          setCsvSuccessMessage(`${resData.count || 'Importation'} utilisateurs importés avec succès !`);
-          setTimeout(() => {
-            fetchUsers();
-            setIsImportModalOpen(false);
-            setCsvSuccessMessage('');
-            onDone();
-          }, 1500);
-          return;
-        }
-      } catch (err) {
-        console.error("Échec de l'importation via API, repli local.", err);
-      }
-    }
-
-    // Fallback simulation
-    setTimeout(() => {
-      const importedUsers = [
-        { id: `USR-00${users.length + 1}`, nom: 'Baye', prenom: 'Modou', email: 'modou.baye@email.com', telephone: '+221 77 987 65 43', role: 'Client', status: 'Bloqué', date: new Date().toISOString().split('T')[0] }
-      ];
-      setUsers([...importedUsers, ...users]);
-      setCsvSuccessMessage("1 utilisateur importé en local.");
+    try {
+      const resData = await api.importUsers(file);
+      setCsvSuccessMessage(`${resData.count || 0} utilisateurs importés avec succès !`);
       setTimeout(() => {
+        fetchUsers();
         setIsImportModalOpen(false);
         setCsvSuccessMessage('');
-        onDone();
+        if (onDone) onDone();
       }, 1500);
-    }, 1500);
+    } catch (err) {
+      console.error("Échec de l'importation via API", err);
+      setCsvSuccessMessage(`Erreur: ${err.message}`);
+    }
   };
 
   return (
@@ -276,7 +172,7 @@ function UserManagement() {
             <span className="material-symbols-outlined offline-icon">cloud_off</span>
             <div>
               <div className="offline-title">Mode Démo Local Actif</div>
-              <div className="offline-text">Le serveur API backend ({API_BASE_URL}) n'est pas démarré. Les actions sont simulées en mémoire locale.</div>
+              <div className="offline-text">Le serveur API backend n'est pas démarré. La base de données est indisponible.</div>
             </div>
           </div>
         )}
