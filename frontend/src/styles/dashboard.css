@@ -513,10 +513,18 @@ body {
 }
 
 .dropzone {
+  /* Ancre le champ fichier (.dropzone-input, en position absolue) sur cette zone.
+     Sans cela il se cale sur .modal-overlay et recouvre tout l'écran,
+     interceptant les clics destinés aux boutons de la modale. */
+  position: relative;
   border: 2px dashed #a5b4fc;
   background-color: rgba(255, 255, 255, 0.4);
   border-radius: 1.5rem;
   padding: 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .dropzone:hover {
