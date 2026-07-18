@@ -501,6 +501,16 @@ body {
   gap: 1.25rem;
 }
 
+.modal-error {
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
 .form-label {
   font-size: 0.8rem;
   font-weight: 700;

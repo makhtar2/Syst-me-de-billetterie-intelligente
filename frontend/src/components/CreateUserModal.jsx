@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { isValidCreateUserForm } from '../utils/validators';
+import { validateUserForm } from '../utils/validators';
 
 function CreateUserModal({ isOpen, onClose, onCreate }) {
   const [nom, setNom] = useState('');
@@ -7,15 +7,22 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [role, setRole] = useState('Client');
+  const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isValidCreateUserForm({ nom, prenom, email, telephone })) return;
 
+    const validationError = validateUserForm({ nom, prenom, email, telephone });
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError(null);
     onCreate({ nom, prenom, email, telephone, role });
-    
+
     // Reset Form
     setNom('');
     setPrenom('');
@@ -34,6 +41,8 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
+          {error && <div className="modal-error">{error}</div>}
+
           <div className="modal-grid">
             <div className="form-group">
               <label className="form-label">Prénom</label>
@@ -80,7 +89,9 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
                 value={telephone}
                 onChange={(e) => setTelephone(e.target.value)}
                 className="form-input"
-                placeholder="+221 77 123 45 67"
+                placeholder="+221771234567"
+                pattern="^\+221\d{9}$"
+                title="Format attendu : +221 suivi de 9 chiffres, ex. +221771234567"
               />
             </div>
             <div className="form-group">
