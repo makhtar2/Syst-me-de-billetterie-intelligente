@@ -2,11 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { generateTempPassword } from '../utils/generatePassword.js';
 import { sendActivationEmail } from '../utils/sendEmail.js';
-
-// Neutralise les caractères spéciaux pour une recherche littérale.
-// Indispensable pour les numéros de téléphone : un '+' en tête est un
-// quantificateur invalide en expression régulière et ferait échouer la requête.
-const escapeRegex = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+import { escapeRegex } from '../utils/escapeRegex.js';
 
 // Construit le filtre Mongo à partir des query params (role, status, search)
 const buildUserFilter = ({ role, status, search }) => {
