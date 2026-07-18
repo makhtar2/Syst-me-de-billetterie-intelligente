@@ -3,6 +3,11 @@ import User from '../models/User.js';
 import { generateTempPassword } from '../utils/generatePassword.js';
 import { sendActivationEmail } from '../utils/sendEmail.js';
 
+// Neutralise les caractères spéciaux pour une recherche littérale.
+// Indispensable pour les numéros de téléphone : un '+' en tête est un
+// quantificateur invalide en expression régulière et ferait échouer la requête.
+const escapeRegex = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Construit le filtre Mongo à partir des query params (role, status, search)
 const buildUserFilter = ({ role, status, search }) => {
   const filter = {};
@@ -10,7 +15,7 @@ const buildUserFilter = ({ role, status, search }) => {
   if (status) filter.status = status;
 
   if (search) {
-    const regex = new RegExp(search.trim(), 'i');
+    const regex = new RegExp(escapeRegex(search.trim()), 'i');
     const or = [{ email: regex }, { telephone: regex }, { nom: regex }, { prenom: regex }];
     // Recherche par identifiant unique si la chaîne est un ObjectId valide
     if (mongoose.Types.ObjectId.isValid(search)) {
