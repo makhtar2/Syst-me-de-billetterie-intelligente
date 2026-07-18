@@ -1,9 +1,14 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 connectDB();
@@ -22,8 +27,12 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
+// Photos de profil téléversées (accessibles publiquement en lecture)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes du Service Utilisateurs
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Middleware global de gestion des erreurs (ex. erreurs Multer)
