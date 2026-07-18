@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { getStoredUser, clearAuth, api } from '../services/api';
+import { getStoredUser, clearAuth, api, photoUrl } from '../services/api';
 import '../styles/dashboard.css';
 
 function DashboardLayout() {
@@ -13,10 +13,15 @@ function DashboardLayout() {
     const storedUser = getStoredUser();
     if (!storedUser) {
       navigate('/login');
-    } else {
-      setUser(storedUser);
+      return;
     }
-  }, [navigate]);
+    setUser(storedUser);
+
+    // Mot de passe temporaire : on force le passage par la page profil
+    if (storedUser.mustChangePassword && currentPath !== '/profile') {
+      navigate('/profile', { replace: true });
+    }
+  }, [navigate, currentPath]);
 
   const handleLogout = async () => {
     try {
@@ -50,19 +55,34 @@ function DashboardLayout() {
         {/* Centralized Navigation Tabs for Admin Area */}
         <div className="nav-right-area">
           <nav className="nav-links">
-            <Link 
-              to="/users" 
+            <Link
+              to="/users"
               className={`nav-link-item ${currentPath === '/users' ? 'active' : ''}`}
             >
               <span className="material-symbols-outlined">group</span>
               Utilisateurs
+            </Link>
+            <Link
+              to="/profile"
+              className={`nav-link-item ${currentPath === '/profile' ? 'active' : ''}`}
+            >
+              <span className="material-symbols-outlined">account_circle</span>
+              Mon profil
             </Link>
           </nav>
 
           {user && (
             <div className="nav-user">
               <div className="nav-user-avatar">
-                {user.prenom ? user.prenom[0].toUpperCase() : 'U'}
+                {user.photo ? (
+                  <img
+                    src={photoUrl(user.photo)}
+                    alt=""
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  user.prenom ? user.prenom[0].toUpperCase() : 'U'
+                )}
               </div>
               <span className="nav-user-name">{user.prenom} {user.nom}</span>
               <button 

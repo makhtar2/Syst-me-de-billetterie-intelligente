@@ -1,5 +1,15 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
+// Origine du serveur (sans le /api), pour les fichiers servis en statique
+const SERVER_ORIGIN = API_URL.replace(/\/api\/?$/, '');
+
+// Construit l'URL complète d'une photo de profil ('' si aucune photo)
+export function photoUrl(photo) {
+  if (!photo) return '';
+  if (/^https?:\/\//i.test(photo)) return photo;
+  return `${SERVER_ORIGIN}${photo}`;
+}
+
 function getToken() {
   return localStorage.getItem('token');
 }
@@ -17,6 +27,11 @@ export function clearAuth() {
 export function getStoredUser() {
   const raw = localStorage.getItem('user');
   return raw ? JSON.parse(raw) : null;
+}
+
+// Met à jour l'utilisateur stocké sans toucher au token
+export function setStoredUser(user) {
+  localStorage.setItem('user', JSON.stringify(user));
 }
 
 export function isAuthenticated() {
@@ -75,4 +90,22 @@ export const api = {
   deleteUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
 
   getStats: () => request('/admin/dashboard/stats'),
+
+  // --- Profil du compte connecté ---
+  getProfile: () => request('/users/profile'),
+
+  updateProfile: (data) =>
+    request('/users/profile', { method: 'PUT', body: JSON.stringify(data) }),
+
+  changePassword: (oldPassword, newPassword) =>
+    request('/users/profile/password', {
+      method: 'PUT',
+      body: JSON.stringify({ oldPassword, newPassword }),
+    }),
+
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    return request('/users/profile/photo', { method: 'POST', body: formData });
+  },
 };
