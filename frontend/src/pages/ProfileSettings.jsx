@@ -244,9 +244,9 @@ function ProfileSettings() {
                   onChange={(e) => setTelephone(e.target.value)}
                   className="form-input"
                   disabled={user.mustChangePassword}
-                  placeholder="+221771234567"
-                  pattern="^\+221\d{9}$"
-                  title="Format attendu : +221 suivi de 9 chiffres, ex. +221771234567"
+                  placeholder="771234567"
+                  pattern="^(\+?221)?\d{9}$"
+                  title="9 chiffres, avec ou sans indicatif +221, ex. 771234567"
                 />
               </div>
 

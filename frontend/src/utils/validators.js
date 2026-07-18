@@ -3,8 +3,9 @@
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Numéros du projet au format sénégalais : +221 suivi de 9 chiffres (ex. +221771234567)
-const PHONE_REGEX = /^\+221\d{9}$/;
+// Numéro sénégalais : ce qui compte, ce sont les 9 chiffres. L'indicatif +221
+// (ou 221) est accepté s'il est présent, mais n'est pas exigé.
+const PHONE_REGEX = /^(?:\+?221)?\d{9}$/;
 
 export function isValidEmail(email) {
   return typeof email === 'string' && EMAIL_REGEX.test(email.trim());
@@ -35,7 +36,7 @@ export function validateUserForm({ nom, prenom, email, telephone } = {}, { requi
     return 'Le numéro de téléphone est obligatoire.';
   }
   if (!isValidPhone(telephone)) {
-    return 'Le numéro de téléphone doit être au format +221 suivi de 9 chiffres (ex. +221771234567).';
+    return 'Le numéro de téléphone doit comporter 9 chiffres (ex. 771234567), avec ou sans indicatif +221.';
   }
   return null;
 }

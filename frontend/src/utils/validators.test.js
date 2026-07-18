@@ -21,16 +21,24 @@ describe('isValidEmail', () => {
 });
 
 describe('isValidPhone', () => {
-  test('accepte le format +221 suivi de 9 chiffres', () => {
+  test('accepte 9 chiffres sans indicatif', () => {
+    expect(isValidPhone('771234567')).toBe(true);
+  });
+
+  test('accepte le même numéro préfixé par +221', () => {
     expect(isValidPhone('+221771234567')).toBe(true);
   });
 
-  test('refuse un numéro sans indicatif +221', () => {
-    expect(isValidPhone('0771234567')).toBe(false);
+  test('accepte le même numéro préfixé par 221 sans le +', () => {
+    expect(isValidPhone('221771234567')).toBe(true);
   });
 
   test('refuse un numéro trop court', () => {
-    expect(isValidPhone('+22177123')).toBe(false);
+    expect(isValidPhone('77123')).toBe(false);
+  });
+
+  test('refuse un numéro trop long', () => {
+    expect(isValidPhone('7712345678')).toBe(false);
   });
 
   test('refuse des caractères non numériques', () => {
