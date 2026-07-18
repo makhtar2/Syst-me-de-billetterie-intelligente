@@ -1,224 +1,136 @@
 # Mini-TP — Service Utilisateurs
 
-**Projet :** Système de billetterie intelligente avec QR Code et abonnements
-**Périmètre :** Service Utilisateurs — backend (Node.js / Express / MongoDB)
-**Branche :** `test/service-utilisateurs`
+Projet : Système de billetterie intelligente avec QR Code et abonnements.
+Périmètre : Service Utilisateurs, sur toute la chaîne — interface React et API Node/Express/MongoDB.
+
+Le travail a été réparti en binôme : une personne sur le front (branches `feature/*`, `bugfix/*`, `test/tp1-service-utilisateurs-front`), une sur le back (`refactor/conformite-cahier-des-charges`, `test/service-utilisateurs`). Ce document rassemble les deux côtés parce que le TP demande un seul plan de tests et un seul tableau de synthèse, pas deux documents parallèles qui se recoupent à moitié.
 
 ---
 
-## 1. Fonctionnalités critiques du service
+## 1. Fonctionnalités critiques
 
-Une fonctionnalité est jugée **critique** lorsque sa défaillance entraîne une
-faille de sécurité, une perte de données, ou rend le service inutilisable.
+On a classé les fonctionnalités selon ce qui se passe si elles tombent en panne : perte de sécurité ou de données d'un côté, simple gêne pour l'admin de l'autre.
 
-| # | Fonctionnalité | Pourquoi elle est critique | Gravité |
-|---|---|---|---|
-| F1 | Authentification (JWT) | Porte d'entrée unique. En panne, plus personne n'accède au service. | 🔴 Critique |
-| F2 | Contrôle d'accès administrateur | Une faille laisserait un Agent ou un Client administrer tous les comptes. | 🔴 Critique |
-| F3 | Hachage des mots de passe | Un stockage en clair exposerait tous les comptes en cas de fuite. | 🔴 Critique |
-| F4 | Activation + mot de passe temporaire | Génère les accès et les transmet par e-mail. Défaillante, aucun compte ne devient utilisable. | 🔴 Critique |
-| F5 | Changement de mot de passe imposé | Un mot de passe temporaire qui resterait valide indéfiniment est une faille. | 🟠 Majeure |
-| F6 | Importation CSV | Traite des lots entiers : une erreur se propage à des dizaines de comptes. | 🟠 Majeure |
-| F7 | Actions groupées | Effet de masse : une erreur bloque ou supprime plusieurs comptes d'un coup. | 🟠 Majeure |
-| F8 | Suppression logique | Une suppression physique par erreur détruirait des données irrécupérables. | 🟠 Majeure |
-| F9 | Recherche et filtrage | Sans elle, l'administration devient impraticable au-delà de quelques comptes. | 🟡 Modérée |
-| F10 | Tableau de bord statistique | Fonction de pilotage : une erreur fausse la lecture, sans bloquer le service. | 🟡 Modérée |
-| F11 | Modification d'un compte (dont le rôle) | Un changement de rôle mal contrôlé accorderait des privilèges d'administration indus. | 🔴 Critique |
+**Critiques (sécurité ou intégrité des comptes) :**
+- Authentification JWT — sans elle, plus personne n'entre dans l'application.
+- Contrôle d'accès administrateur — une faille ici laisserait un Agent ou un Client gérer tous les comptes.
+- Hachage des mots de passe (bcrypt) — un stockage en clair expose tout en cas de fuite de la base.
+- Activation de compte + mot de passe temporaire — c'est ce qui rend un compte réellement utilisable après création ou import CSV.
+- Modification d'un compte, notamment le rôle — un changement de rôle mal contrôlé équivaut à une élévation de privilèges.
+- Redirection forcée tant que le mot de passe temporaire n'est pas changé — sans ce verrou, un mot de passe temporaire resterait valide indéfiniment.
+
+**Importantes (effet de masse ou irréversible, mais pas une faille de sécurité en soi) :**
+- Import CSV — une erreur de traitement se répercute sur des dizaines de comptes d'un coup.
+- Actions groupées (activer/bloquer/supprimer plusieurs comptes) — même logique, effet multiplié.
+- Suppression — volontairement une suppression logique (`status: 'Supprimé'`), pas un `DELETE` en base, pour ne rien perdre par erreur.
+- Client API centralisé côté front (`services/api.js`) — toutes les pages en dépendent, un bug ici se propage partout.
+
+**Secondaires (utilité opérationnelle, pas de risque en cas de panne) :**
+- Recherche et filtrage (rôle, statut, email, téléphone, identifiant).
+- Tableau de bord statistique (compteurs total / actifs / bloqués / supprimés par rôle et globalement).
+- Upload de la photo de profil.
 
 ---
 
 ## 2. Plan de tests
 
-### 2.1 Stratégie
+On a gardé deux niveaux, avec un outillage différent de chaque côté parce que ça n'avait pas de sens d'imposer le même framework à un projet React et à une API Express :
 
-Deux niveaux complémentaires :
+- **Back** : `node:test` (le lanceur intégré à Node, pas de dépendance en plus) + `supertest` pour taper sur les routes Express sans ouvrir de port, sur une base MongoDB dédiée au test (`billetterie_test_<pid>`, une par processus pour éviter les interférences). L'app Express est extraite dans `src/app.js`, importable directement par les tests sans passer par `server.js`. L'envoi d'e-mail est neutralisé pendant les tests.
+- **Front** : Jest, sur les règles de validation de formulaire (`utils/validators.js`) — c'est la seule logique métier du front qui a du sens à tester unitairement sans monter des composants React entiers ni simuler un DOM complet.
 
-- **Tests unitaires** — fonctions pures et règles du modèle, sans base ni réseau.
-  Rapides, ils vérifient une règle métier isolée.
-- **Tests d'API (intégration)** — requêtes HTTP réelles traversant toute la
-  chaîne : routes → middlewares → contrôleurs → MongoDB. Ils vérifient le
-  comportement observable par le frontend.
+Le reste (rendu des pages, interactions utilisateur en pixels) est vérifié manuellement via le scénario du §4, pas par des tests automatisés — ça aurait demandé React Testing Library + jsdom pour un gain limité vu la taille du projet.
 
-### 2.2 Outillage
-
-| Élément | Choix | Justification |
-|---|---|---|
-| Lanceur | `node:test` (intégré à Node.js) | Aucune dépendance ajoutée, compatible ESM natif |
-| Assertions | `node:assert/strict` | Intégré |
-| Tests HTTP | `supertest` | Standard pour Express, sans ouvrir de port |
-| Base de données | MongoDB, base dédiée `billetterie_test_<pid>` | Isole totalement la base de développement |
-
-### 2.3 Conditions d'exécution
-
-- L'application Express est extraite dans `src/app.js`, importable sans écoute
-  réseau ni connexion à la base : les tests la pilotent directement.
-- Chaque fichier de test s'exécutant dans son propre processus, le nom de la
-  base est suffixé par le PID pour éviter toute interférence en parallèle.
-- L'envoi d'e-mails est neutralisé : **aucun message réel n'est émis**.
-- La base de test est vidée avant chaque test et supprimée à la fin.
-
-### 2.4 Commandes
+Commandes :
 
 ```bash
+# backend
 npm test              # toute la suite
 npm run test:unitaires
 npm run test:api
+
+# frontend
+npm test               # 12 tests Jest sur validators.js
 ```
 
-### 2.5 Hors périmètre
-
-Interface React, service Abonnements et service Billetterie : non couverts par
-ce TP, qui porte sur le backend du Service Utilisateurs.
+Hors périmètre pour ce TP : service Abonnements, service Billetterie/QR Code — pas encore développés, on reste sur la gestion des utilisateurs comme demandé.
 
 ---
 
 ## 3. Tableau de synthèse
 
-| ID | Cas de test | Type | Fonctionnalité | Résultat attendu | Statut |
-|---|---|---|---|---|---|
-| U1 | Mot de passe temporaire de 8 caractères | Unitaire | F4 | Longueur = 8 | ✅ |
-| U2 | Mot de passe temporaire alphanumérique | Unitaire | F4 | Format `[a-z0-9]{8}` | ✅ |
-| U3 | Valeur différente à chaque appel | Unitaire | F4 | > 90 valeurs distinctes / 100 | ✅ |
-| U4 | Échappement d'un numéro `+221…` | Unitaire | F9 | Regex valide, pas d'exception | ✅ |
-| U5 | Correspondance littérale du `+` | Unitaire | F9 | Le numéro est retrouvé | ✅ |
-| U6 | Métacaractères neutralisés | Unitaire | F9 | `a.c` ne correspond pas à `abc` | ✅ |
-| U7 | Texte ordinaire préservé | Unitaire | F9 | Chaîne inchangée | ✅ |
-| U8 | Mot de passe absent du JSON | Unitaire | F3 | `password` indéfini | ✅ |
-| U9 | Champ `id` exposé | Unitaire | F9 | `id` présent | ✅ |
-| U10 | E-mail normalisé en minuscules | Unitaire | F1 | `awa.diop@test.com` | ✅ |
-| U11 | Valeurs par défaut Client / Bloqué | Unitaire | F4 | Compte inutilisable à la création | ✅ |
-| U12 | Rôle et statut hors énumération refusés | Unitaire | F2 | Erreur de validation | ✅ |
-| U13 | Champs obligatoires exigés | Unitaire | F6 | Erreur sur chaque champ manquant | ✅ |
-| U14 | E-mail mal formé rejeté | Unitaire | F6 | Erreur de validation | ✅ |
-| A1 | Connexion d'un compte actif | API | F1 | 200 + jeton, sans mot de passe | ✅ |
-| A2 | Mot de passe erroné | API | F1 | 401 | ✅ |
-| A3 | Compte non actif | API | F1 | 403 | ✅ |
-| A4 | Requête sans jeton | API | F2 | 401 | ✅ |
-| A5 | Jeton invalide | API | F2 | 401 | ✅ |
-| A6 | Agent tentant d'administrer | API | F2 | 403 | ✅ |
-| A7 | Administrateur autorisé | API | F2 | 200 | ✅ |
-| A8 | Déconnexion | API | F1 | 200 | ✅ |
-| A9 | Création d'un compte | API | F4 | 201, statut `Bloqué` | ✅ |
-| A10 | E-mail déjà utilisé | API | F6 | 409 | ✅ |
-| A11 | Champs obligatoires manquants | API | F6 | 400 | ✅ |
-| A12 | Liste des utilisateurs | API | F9 | Tableau JSON | ✅ |
-| A13 | Recherche par e-mail | API | F9 | 1 résultat | ✅ |
-| A14 | **Recherche par téléphone `+221…`** | API | F9 | 200, 1 résultat | ✅ |
-| A15 | Recherche par identifiant unique | API | F9 | Compte trouvé | ✅ |
-| A16 | Filtre par rôle | API | F9 | Uniquement ce rôle | ✅ |
-| A17 | Filtre par statut | API | F9 | Uniquement ce statut | ✅ |
-| A18 | Filtres combinés | API | F9 | Les deux critères respectés | ✅ |
-| A19 | Statistiques par rôle et statut | API | F10 | Les 3 statuts présents | ✅ |
-| A20 | Activation d'un compte | API | F4 | Actif, mot de passe haché régénéré | ✅ |
-| A21 | Blocage sans régénération | API | F7 | Mot de passe inchangé | ✅ |
-| A22 | Suppression logique | API | F8 | Statut `Supprimé`, donnée conservée | ✅ |
-| A23 | Statut inconnu refusé | API | F7 | 400 | ✅ |
-| A24 | Utilisateur inexistant | API | F7 | 404 | ✅ |
-| A25 | Activation groupée | API | F7 | Tous actifs | ✅ |
-| A26 | Blocage puis suppression groupés | API | F7 | Statuts appliqués | ✅ |
-| A27 | Liste vide / action invalide | API | F7 | 400 | ✅ |
-| A28 | Verrouillage sur mot de passe temporaire | API | F5 | 403 puis 200 après changement | ✅ |
-| A29 | Import CSV valide | API | F6 | 2 créés, tous `Bloqué` | ✅ |
-| A30 | Doublon ignoré, import poursuivi | API | F6 | 1 créé, 1 ignoré | ✅ |
-| A31 | Lignes invalides rejetées une à une | API | F6 | 1 créé, 3 ignorés avec motifs | ✅ |
-| A32 | Fichier non CSV | API | F6 | ≥ 400 | ✅ |
-| A33 | Requête sans fichier | API | F6 | 400 | ✅ |
-| A34 | Import sans authentification | API | F2 | 401 | ✅ |
-| A35 | Fiche d'un compte par identifiant | API | F11 | 200, sans mot de passe | ✅ |
-| A36 | Fiche d'un compte inexistant | API | F11 | 404 | ✅ |
-| A37 | Fiche sans authentification | API | F2 | 401 | ✅ |
-| A38 | Mise à jour des coordonnées | API | F11 | Champs modifiés | ✅ |
-| A39 | **Changement de rôle** | API | F11 | Nouveau rôle appliqué | ✅ |
-| A40 | Rôle hors énumération | API | F11 | 400, rôle inchangé | ✅ |
-| A41 | Seuls les champs transmis changent | API | F11 | Les autres restent intacts | ✅ |
-| A42 | Changement d'e-mail ignoré | API | F11 | E-mail d'origine conservé | ✅ |
-| A43 | Changement de statut ignoré | API | F11 | Statut d'origine conservé | ✅ |
-| A44 | Mise à jour d'un compte inexistant | API | F11 | 404 | ✅ |
-| A45 | Mise à jour par un non-administrateur | API | F2 | 403 | ✅ |
+### Back — 59 tests (14 unitaires, 45 API), tous verts
 
-**Total : 59 tests — 14 unitaires, 45 d'API. 59 réussis, 0 échec.**
+| ID | Cas de test | Type | Résultat attendu |
+|---|---|---|---|
+| U1-U3 | Mot de passe temporaire : 8 caractères, alphanumérique, différent à chaque appel | Unitaire | Format et unicité respectés |
+| U4-U7 | Échappement des caractères spéciaux dans la recherche (`escapeRegex`) | Unitaire | Un `+` ou un métacaractère ne casse plus la requête |
+| U8-U9 | Sérialisation du modèle `User` | Unitaire | Mot de passe jamais exposé, `id` présent |
+| U10-U14 | Validation du modèle (email en minuscule, valeurs par défaut, champs requis, énumérations) | Unitaire | Erreurs de validation levées correctement |
+| A1-A8 | Authentification et contrôle d'accès | API | 200/401/403 selon les cas |
+| A9-A14 | Création de compte, doublons, recherche par email/téléphone/identifiant | API | Codes et résultats attendus, y compris la recherche par téléphone `+221…` |
+| A15-A19 | Filtres rôle/statut, statistiques | API | Résultats correctement filtrés et agrégés |
+| A20-A27 | Activation, blocage, suppression logique, actions groupées | API | Statuts appliqués, mots de passe régénérés seulement à l'activation |
+| A28 | Verrouillage tant que le mot de passe temporaire n'est pas changé | API | 403 puis 200 après changement |
+| A29-A34 | Import CSV (valide, doublon, lignes invalides, fichier non-CSV, sans auth) | API | Import partiel correct, erreurs détaillées ligne par ligne |
+| A35-A45 | CRUD complet sur un compte (lecture, modification, garde-fous sur email/statut/rôle) | API | Édition possible, mais email et statut restent protégés |
+
+### Front — 12 tests unitaires (Jest, sur `validators.js`)
+
+| Fonction testée | Cas couverts |
+|---|---|
+| `isValidEmail` | email valide, invalide, vide |
+| `isValidCreateUserForm` | formulaire complet, champ manquant, aucun champ |
+| `validateLoginForm` | email vide, mot de passe trop court, cas valide |
+| `validateNewPassword` | mot de passe trop court, confirmation différente, cas valide |
+
+Ces règles étaient à l'origine écrites directement dans `Login.jsx`, `CreateUserModal.jsx` et `ProfileSettings.jsx`, donc impossibles à tester sans monter tout le composant. On les a sorties dans `utils/validators.js` sans changer le comportement.
 
 ---
 
 ## 4. Scénario fonctionnel complet
 
-**Intitulé :** de l'importation d'un lot d'agents jusqu'à leur première connexion.
+**De l'import CSV d'un lot d'agents jusqu'à leur première connexion, écran par écran.**
 
-**Préalable :** un administrateur actif existe (`npm run seed:admin`).
+Préalable : un administrateur actif existe (`npm run seed:admin`).
 
-| Étape | Action | Résultat attendu | Couvert par |
-|---|---|---|---|
-| 1 | L'administrateur se connecte | Jeton JWT délivré | A1 |
-| 2 | Il importe un fichier CSV de 10 utilisateurs | 10 comptes créés, tous `Bloqué` | A29 |
-| 3 | Le fichier contient un doublon et des lignes invalides | Lignes rejetées une à une avec leur motif, l'import se poursuit | A30, A31 |
-| 4 | Il filtre la liste sur le rôle `Agent` | Seuls les agents s'affichent | A16 |
-| 5 | Il recherche un agent par son numéro `+221…` | L'agent est trouvé | A14 |
-| 6 | Il sélectionne 3 agents et les active | Statut `Actif`, mot de passe temporaire de 8 caractères généré | A25, U1 |
-| 7 | Le système envoie les accès par e-mail | Message contenant l'identifiant et le mot de passe temporaire | (manuel, cf. §6) |
-| 8 | L'agent se connecte avec ce mot de passe | Connexion acceptée | A1 |
-| 9 | Il tente d'accéder à l'administration | **403** — changement de mot de passe exigé | A28 |
-| 10 | Il définit un nouveau mot de passe | Accepté, `mustChangePassword` repassé à faux | A28 |
-| 11 | Il accède de nouveau au service | Autorisé | A28 |
-| 12 | L'administrateur bloque puis supprime un compte | Statut `Supprimé`, enregistrement conservé | A26, A22 |
-| 13 | Il consulte le tableau de bord | Compteurs actifs / bloqués / supprimés à jour | A19 |
+1. L'administrateur se connecte sur `/login`. Un jeton JWT est délivré, il arrive sur le Dashboard.
+2. Il ouvre **Gestion des Comptes** → **Importer CSV**, dépose un fichier de 10 agents. L'import réussit, les 10 comptes apparaissent avec le statut `Bloqué`. Le fichier contenait volontairement un doublon et deux lignes invalides : la modale affiche le détail ligne par ligne (numéro de ligne, email, raison du rejet), l'import continue pour le reste.
+3. Il filtre la liste sur le rôle `Agent`, puis recherche un agent par son numéro `+221…` — la recherche fonctionne (c'est justement le bug qu'on a corrigé, voir §5.1).
+4. Il sélectionne 3 agents et clique sur **Activer** dans la barre d'actions groupées. Leur statut passe à `Actif`, un mot de passe temporaire de 8 caractères est généré pour chacun et envoyé par e-mail. Les compteurs de la carte Agents (Actifs/Bloqués) se mettent à jour immédiatement.
+5. Un des agents reçoit son mot de passe temporaire et se connecte sur `/login`.
+6. Comme `mustChangePassword` vaut `true`, il est redirigé automatiquement vers `/profile` et ne peut aller nulle part ailleurs — le formulaire d'informations personnelles reste désactivé tant qu'il n'a pas changé son mot de passe. Une tentative d'accès direct à une autre route renvoie 403 côté API.
+7. Il saisit son ancien mot de passe (temporaire) et un nouveau de 8 caractères minimum, confirmé à l'identique. Le changement est accepté, le bandeau d'avertissement disparaît, il peut maintenant modifier ses informations et sa photo de profil.
+8. Retour côté administrateur : il modifie le numéro de téléphone d'un des agents directement depuis le tableau (édition CRUD), le changement est reflété immédiatement.
+9. Il bloque puis supprime un autre compte (suppression logique — le statut passe à `Supprimé`, l'enregistrement reste en base).
+10. Il consulte le tableau de bord : les compteurs total / actifs / bloqués / supprimés, par rôle et globalement, reflètent exactement les actions effectuées.
 
-**Règle métier centrale vérifiée :** un compte n'est **jamais** utilisable avant
-activation explicite par un administrateur, et un mot de passe temporaire ne
-donne accès à rien tant qu'il n'a pas été remplacé.
+Règle métier vérifiée du début à la fin : un compte n'est jamais utilisable avant activation explicite, et un mot de passe temporaire ne donne accès à rien tant qu'il n'a pas été remplacé.
 
 ---
 
-## 5. Anomalies détectées grâce à cette démarche
+## 5. Anomalies trouvées pendant le TP
 
-Deux régressions réelles ont été trouvées pendant la mise en place des tests.
+Écrire les tests et refaire le tour de l'app a fait remonter quatre problèmes réels, pas juste théoriques.
 
-### 5.1 Recherche par téléphone — erreur 500
+**5.1 — Recherche par téléphone : erreur 500.** Le filtre construisait une regex directement à partir de la saisie (`new RegExp(search.trim(), 'i')`). Comme tous les numéros du projet commencent par `+221`, et qu'un `+` en tête de motif est un quantificateur invalide en regex, toute recherche par téléphone plantait côté serveur. Corrigé en échappant la saisie avant de construire la regex — ça règle aussi un risque d'injection de regex au passage.
 
-Le filtre construisait une expression régulière directement à partir de la
-saisie : `new RegExp(search.trim(), 'i')`. Or tous les numéros du projet
-commencent par `+221`, et un `+` en tête de motif est un quantificateur
-invalide : **toute recherche par numéro renvoyait une erreur 500.**
+**5.2 — Champ de fichier CSV hors de sa zone de dépôt.** Le `input[type=file]` de la modale d'import était positionné en absolu sans ancrage : il se calait sur toute la fenêtre modale, invisible, et interceptait les clics destinés aux boutons. Impossible de déclencher l'import. Corrigé en ancrant le champ à sa zone de dépôt.
 
-Il s'agissait d'une non-conformité au cahier des charges, qui exige de
-« rechercher un utilisateur à partir de son numéro de téléphone ».
+**5.3 — Rôle invalide : erreur 500 au lieu de 400.** En modifiant un compte avec un rôle hors énumération, l'erreur remontait telle quelle depuis Mongoose en 500. Une saisie invalide, ça reste une erreur du client (400), pas une panne serveur. Corrigé par une validation explicite du rôle avant l'enregistrement.
 
-*Correction :* échappement de la saisie (`escapeRegex`), ce qui supprime au
-passage un risque d'injection d'expression régulière.
-*Couverture ajoutée :* U4, U5, U6, U7 et A14.
+**5.4 — Compteurs "Supprimés" invisibles côté interface.** Le cahier des charges demande explicitement 4 compteurs par carte (total, actifs, bloqués, supprimés), et le back les renvoyait bien — mais aucune des 4 cartes de statistiques ne les affichait à l'écran, seuls Total/Actifs/Bloqués étaient visibles. Corrigé côté front.
 
-### 5.2 Modale d'import CSV — champ de fichier hors de sa zone
-
-Le champ `input[type=file]` était positionné en absolu sans ancrage : il se
-calait sur la fenêtre modale entière et recouvrait tout l'écran en étant
-invisible, interceptant les clics destinés aux boutons. L'import ne pouvait
-donc jamais être déclenché.
-
-*Correction :* ancrage du champ à sa zone de dépôt (`position: relative`).
-
-### 5.3 Rôle invalide — erreur 500 au lieu de 400
-
-Lors de la modification d'un compte, un rôle absent de l'énumération remontait
-jusqu'à la validation Mongoose et produisait une **erreur 500**. Or il s'agit
-d'une saisie invalide, qui relève du code `400 Bad Request` : une erreur serveur
-laisse croire à une panne alors que la requête est simplement mal formée.
-
-*Correction :* validation explicite du rôle avant enregistrement.
-*Couverture ajoutée :* A40.
-
-> Ces deux anomalies illustrent l'intérêt de la démarche : la première n'était
-> pas visible depuis l'interface, qui filtre également côté client et masquait
-> donc l'erreur renvoyée par l'API.
+Le point commun entre 5.1 et 5.4 : les deux étaient masqués par l'interface elle-même (le filtre front recalcule ses propres stats en repli, et personne ne tape "+221" à la main en testant à l'œil). Ce sont typiquement les bugs qu'un test automatisé attrape et qu'un clic rapide dans l'app rate.
 
 ---
 
 ## 6. Limites connues
 
-- **L'envoi d'e-mails n'est pas testé automatiquement.** Il est neutralisé
-  pendant les tests pour éviter tout envoi réel. Son fonctionnement a été
-  validé manuellement : connexion SMTP acceptée et message d'activation reçu.
-- **Le frontend n'est pas couvert** : ce TP porte sur le backend du service.
-- **Les tests requièrent une instance MongoDB locale.** Une base en mémoire
-  (`mongodb-memory-server`) supprimerait cette dépendance.
+- L'envoi d'e-mail n'est pas couvert par les tests automatiques (neutralisé pendant les tests pour ne rien envoyer réellement) ; il a été vérifié manuellement une fois.
+- Pas de test de bout en bout automatisé (Cypress/Playwright) reliant vraiment le front au back — le scénario du §4 a été rejoué à la main.
+- Les tests back demandent une instance MongoDB locale ; passer à `mongodb-memory-server` supprimerait cette dépendance.
+- Services Abonnements et Billetterie/QR Code non développés à ce stade, conformément au périmètre imposé pour ce TP.
 
 ---
 
@@ -226,8 +138,10 @@ laisse croire à une panne alors que la requête est simplement mal formée.
 
 | Élément | Emplacement |
 |---|---|
-| Tests unitaires | `backend/tests/unitaires/` |
-| Tests d'API | `backend/tests/api/` |
-| Utilitaires de test | `backend/tests/helpers.js` |
-| Application testable | `backend/src/app.js` |
+| Tests unitaires back | `backend/tests/unitaires/` |
+| Tests API back | `backend/tests/api/` |
+| Utilitaires de test back | `backend/tests/helpers.js` |
+| Application Express testable | `backend/src/app.js` |
+| Tests unitaires front | `frontend/src/utils/validators.test.js` |
+| Règles de validation front | `frontend/src/utils/validators.js` |
 | Jeux de données CSV | `docs/exemples/` |
