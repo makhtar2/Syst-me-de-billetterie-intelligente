@@ -132,9 +132,12 @@ function ProfileSettings() {
   return (
     <main className="main-content">
       <section className="page-header">
-        <div>
-          <h1 className="page-title">Mon profil</h1>
-          <p className="page-subtitle">Gérer vos informations personnelles et votre mot de passe</p>
+        <div className="page-title-row">
+          <span className="page-title-icon material-symbols-outlined">account_circle</span>
+          <div>
+            <h1 className="page-title">Mon profil</h1>
+            <p className="page-subtitle">Gérer vos informations personnelles et votre mot de passe</p>
+          </div>
         </div>
       </section>
 
