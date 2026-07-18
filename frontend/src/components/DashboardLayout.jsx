@@ -58,17 +58,19 @@ function DashboardLayout() {
           <nav className="nav-links">
             <Link
               to="/users"
+              title="Utilisateurs"
               className={`nav-link-item ${currentPath === '/users' ? 'active' : ''}`}
             >
               <span className="material-symbols-outlined">group</span>
-              Utilisateurs
+              <span className="nav-link-text">Utilisateurs</span>
             </Link>
             <Link
               to="/profile"
+              title="Mon profil"
               className={`nav-link-item ${currentPath === '/profile' ? 'active' : ''}`}
             >
               <span className="material-symbols-outlined">account_circle</span>
-              Mon profil
+              <span className="nav-link-text">Mon profil</span>
             </Link>
           </nav>
 
