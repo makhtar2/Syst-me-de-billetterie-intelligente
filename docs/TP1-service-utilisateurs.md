@@ -23,6 +23,7 @@ faille de sécurité, une perte de données, ou rend le service inutilisable.
 | F8 | Suppression logique | Une suppression physique par erreur détruirait des données irrécupérables. | 🟠 Majeure |
 | F9 | Recherche et filtrage | Sans elle, l'administration devient impraticable au-delà de quelques comptes. | 🟡 Modérée |
 | F10 | Tableau de bord statistique | Fonction de pilotage : une erreur fausse la lecture, sans bloquer le service. | 🟡 Modérée |
+| F11 | Modification d'un compte (dont le rôle) | Un changement de rôle mal contrôlé accorderait des privilèges d'administration indus. | 🔴 Critique |
 
 ---
 
@@ -123,8 +124,19 @@ ce TP, qui porte sur le backend du Service Utilisateurs.
 | A32 | Fichier non CSV | API | F6 | ≥ 400 | ✅ |
 | A33 | Requête sans fichier | API | F6 | 400 | ✅ |
 | A34 | Import sans authentification | API | F2 | 401 | ✅ |
+| A35 | Fiche d'un compte par identifiant | API | F11 | 200, sans mot de passe | ✅ |
+| A36 | Fiche d'un compte inexistant | API | F11 | 404 | ✅ |
+| A37 | Fiche sans authentification | API | F2 | 401 | ✅ |
+| A38 | Mise à jour des coordonnées | API | F11 | Champs modifiés | ✅ |
+| A39 | **Changement de rôle** | API | F11 | Nouveau rôle appliqué | ✅ |
+| A40 | Rôle hors énumération | API | F11 | 400, rôle inchangé | ✅ |
+| A41 | Seuls les champs transmis changent | API | F11 | Les autres restent intacts | ✅ |
+| A42 | Changement d'e-mail ignoré | API | F11 | E-mail d'origine conservé | ✅ |
+| A43 | Changement de statut ignoré | API | F11 | Statut d'origine conservé | ✅ |
+| A44 | Mise à jour d'un compte inexistant | API | F11 | 404 | ✅ |
+| A45 | Mise à jour par un non-administrateur | API | F2 | 403 | ✅ |
 
-**Total : 48 tests — 14 unitaires, 34 d'API. 48 réussis, 0 échec.**
+**Total : 59 tests — 14 unitaires, 45 d'API. 59 réussis, 0 échec.**
 
 ---
 
@@ -182,6 +194,16 @@ invisible, interceptant les clics destinés aux boutons. L'import ne pouvait
 donc jamais être déclenché.
 
 *Correction :* ancrage du champ à sa zone de dépôt (`position: relative`).
+
+### 5.3 Rôle invalide — erreur 500 au lieu de 400
+
+Lors de la modification d'un compte, un rôle absent de l'énumération remontait
+jusqu'à la validation Mongoose et produisait une **erreur 500**. Or il s'agit
+d'une saisie invalide, qui relève du code `400 Bad Request` : une erreur serveur
+laisse croire à une panne alors que la requête est simplement mal formée.
+
+*Correction :* validation explicite du rôle avant enregistrement.
+*Couverture ajoutée :* A40.
 
 > Ces deux anomalies illustrent l'intérêt de la démarche : la première n'était
 > pas visible depuis l'interface, qui filtre également côté client et masquait
