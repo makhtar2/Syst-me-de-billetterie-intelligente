@@ -83,6 +83,7 @@ function UserManagement() {
         total: stats.byRole[roleName].total || 0,
         actif: stats.byRole[roleName].Actif || 0,
         bloque: stats.byRole[roleName].Bloqué || 0,
+        supprime: stats.byRole[roleName].Supprimé || 0,
       };
     }
     return getLocalStats(roleName);
@@ -94,6 +95,7 @@ function UserManagement() {
         total: stats.total || 0,
         actif: stats.byStatus?.Actif || 0,
         bloque: stats.byStatus?.Bloqué || 0,
+        supprime: stats.byStatus?.Supprimé || 0,
       };
     }
     return getLocalStats('Global');
@@ -246,6 +248,10 @@ function UserManagement() {
                 <span className="metric-value" style={{ color: '#991b1b' }}>{globalStats.bloque}</span>
                 <span className="metric-label">Bloqués</span>
               </div>
+              <div className="metric-item">
+                <span className="metric-value" style={{ color: '#64748b' }}>{globalStats.supprime}</span>
+                <span className="metric-label">Supprimés</span>
+              </div>
             </div>
           </div>
 
@@ -264,6 +270,10 @@ function UserManagement() {
               <div className="metric-item">
                 <span className="metric-value" style={{ color: '#991b1b' }}>{adminStats.bloque}</span>
                 <span className="metric-label">Bloqués</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-value" style={{ color: '#64748b' }}>{adminStats.supprime}</span>
+                <span className="metric-label">Supprimés</span>
               </div>
             </div>
           </div>
@@ -284,6 +294,10 @@ function UserManagement() {
                 <span className="metric-value" style={{ color: '#991b1b' }}>{agentStats.bloque}</span>
                 <span className="metric-label">Bloqués</span>
               </div>
+              <div className="metric-item">
+                <span className="metric-value" style={{ color: '#64748b' }}>{agentStats.supprime}</span>
+                <span className="metric-label">Supprimés</span>
+              </div>
             </div>
           </div>
 
@@ -302,6 +316,10 @@ function UserManagement() {
               <div className="metric-item">
                 <span className="metric-value" style={{ color: '#991b1b' }}>{clientStats.bloque}</span>
                 <span className="metric-label">Bloqués</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-value" style={{ color: '#64748b' }}>{clientStats.supprime}</span>
+                <span className="metric-label">Supprimés</span>
               </div>
             </div>
           </div>
