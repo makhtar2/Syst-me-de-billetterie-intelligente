@@ -24,6 +24,7 @@ function UserManagement() {
   
   // CSV import state
   const [csvSuccessMessage, setCsvSuccessMessage] = useState('');
+  const [csvErrors, setCsvErrors] = useState([]);
 
   // SEO updates
   useEffect(() => {
@@ -183,15 +184,23 @@ function UserManagement() {
   // CSV Import Handler
   const handleCsvImport = async (file, onDone) => {
     setCsvSuccessMessage("Importation en cours...");
+    setCsvErrors([]);
     try {
       const resData = await api.importUsers(file);
+      const errors = resData.summary?.errors || [];
       setCsvSuccessMessage(`${resData.count || 0} utilisateurs importés avec succès !`);
-      setTimeout(() => {
-        fetchUsers();
-        setIsImportModalOpen(false);
-        setCsvSuccessMessage('');
-        if (onDone) onDone();
-      }, 1500);
+      setCsvErrors(errors);
+      fetchUsers();
+      if (onDone) onDone();
+
+      // Si tout s'est bien passé, la modale se ferme seule ; sinon on laisse
+      // l'administrateur lire le détail des lignes ignorées avant de fermer.
+      if (errors.length === 0) {
+        setTimeout(() => {
+          setIsImportModalOpen(false);
+          setCsvSuccessMessage('');
+        }, 1500);
+      }
     } catch (err) {
       console.error("Échec de l'importation via API", err);
       setCsvSuccessMessage(`Erreur: ${err.message}`);
@@ -545,9 +554,14 @@ function UserManagement() {
       {/* CSV IMPORT MODAL */}
       <ImportCsvModal
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => {
+          setIsImportModalOpen(false);
+          setCsvSuccessMessage('');
+          setCsvErrors([]);
+        }}
         onImport={handleCsvImport}
         successMessage={csvSuccessMessage}
+        errors={csvErrors}
       />
     </>
   );
