@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setStoredUser, photoUrl } from '../services/api';
+import { validateNewPassword } from '../utils/validators';
 import './ProfileSettings.css';
 
 function ProfileSettings() {
@@ -65,8 +66,9 @@ function ProfileSettings() {
     e.preventDefault();
     setPasswordMessage(null);
 
-    if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'Les deux nouveaux mots de passe ne correspondent pas.' });
+    const validationError = validateNewPassword(newPassword, confirmPassword);
+    if (validationError) {
+      setPasswordMessage({ type: 'error', text: validationError });
       return;
     }
 

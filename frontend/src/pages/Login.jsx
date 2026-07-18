@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setAuth } from '../services/api';
+import { validateLoginForm } from '../utils/validators';
 import './Login.css';
 
 function Login() {
@@ -34,12 +35,9 @@ function Login() {
     setError('');
     setSuccess(false);
 
-    if (!email) {
-      setError("Veuillez saisir votre adresse email ou votre identifiant.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Le mot de passe doit comporter au moins 6 caractères.");
+    const validationError = validateLoginForm({ email, password });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
