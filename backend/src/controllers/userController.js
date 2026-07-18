@@ -66,41 +66,6 @@ export const getUsers = async (req, res) => {
   }
 };
 
-// GET /api/admin/users/:id — Détail d'un utilisateur
-export const getUserById = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ message: 'Utilisateur introuvable' });
-    }
-    return res.status(200).json({ user });
-  } catch (error) {
-    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
-  }
-};
-
-// PUT /api/admin/users/:id — Mettre à jour un utilisateur
-export const updateUser = async (req, res) => {
-  try {
-    const { nom, prenom, telephone, role, photo } = req.body;
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ message: 'Utilisateur introuvable' });
-    }
-
-    if (nom !== undefined) user.nom = nom;
-    if (prenom !== undefined) user.prenom = prenom;
-    if (telephone !== undefined) user.telephone = telephone;
-    if (role !== undefined) user.role = role;
-    if (photo !== undefined) user.photo = photo;
-
-    await user.save();
-    return res.status(200).json({ message: 'Utilisateur mis à jour', user });
-  } catch (error) {
-    return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: error.message });
-  }
-};
-
 // DELETE /api/admin/users/:id — Suppression logique (status = 'Supprimé')
 export const deleteUser = async (req, res) => {
   try {
