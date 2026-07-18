@@ -512,6 +512,22 @@ body {
   padding: 0.75rem 1rem;
 }
 
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper .form-input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+}
+
 .dropzone {
   /* Ancre le champ fichier (.dropzone-input, en position absolue) sur cette zone.
      Sans cela il se cale sur .modal-overlay et recouvre tout l'écran,

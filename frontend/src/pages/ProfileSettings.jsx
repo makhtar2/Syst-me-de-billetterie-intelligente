@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setStoredUser, photoUrl } from '../services/api';
 import { validateNewPassword } from '../utils/validators';
+import PasswordInput from '../components/PasswordInput';
 import './ProfileSettings.css';
 
 function ProfileSettings() {
@@ -256,36 +257,30 @@ function ProfileSettings() {
             <form onSubmit={handleChangePassword} className="modal-form">
               <div className="form-group">
                 <label className="form-label">Mot de passe actuel</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  className="form-input"
                 />
               </div>
 
               <div className="modal-grid">
                 <div className="form-group">
                   <label className="form-label">Nouveau mot de passe</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     required
                     minLength={8}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="form-input"
                   />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Confirmer</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     required
                     minLength={8}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="form-input"
                   />
                 </div>
               </div>
