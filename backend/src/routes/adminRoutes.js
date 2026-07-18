@@ -11,12 +11,12 @@ import {
 } from '../controllers/userController.js';
 import { importUsers } from '../controllers/importController.js';
 import { uploadCsv } from '../middleware/upload.js';
-import { protect, isAdmin } from '../middleware/auth.js';
+import { protect, isAdmin, requirePasswordChanged } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Toutes les routes de ce module sont réservées aux administrateurs
-router.use(protect, isAdmin);
+// Réservé aux administrateurs ayant déjà remplacé leur mot de passe temporaire
+router.use(protect, requirePasswordChanged, isAdmin);
 
 // Statistiques du tableau de bord
 router.get('/dashboard/stats', getDashboardStats);

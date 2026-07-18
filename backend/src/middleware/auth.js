@@ -34,3 +34,15 @@ export const isAdmin = (req, res, next) => {
   }
   return res.status(403).json({ message: 'Accès réservé aux administrateurs' });
 };
+
+// Bloque l'accès tant que le mot de passe temporaire n'a pas été remplacé.
+// Le drapeau mustChangePassword permet au front de rediriger vers la page profil.
+export const requirePasswordChanged = (req, res, next) => {
+  if (req.user && req.user.mustChangePassword) {
+    return res.status(403).json({
+      message: 'Vous devez changer votre mot de passe temporaire avant de continuer',
+      mustChangePassword: true,
+    });
+  }
+  next();
+};

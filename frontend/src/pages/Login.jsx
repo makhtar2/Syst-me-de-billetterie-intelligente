@@ -50,7 +50,8 @@ function Login() {
       setAuth(res.token, res.user);
       setSuccess(true);
       setTimeout(() => {
-        navigate('/'); 
+        // Mot de passe temporaire : on impose d'abord son remplacement
+        navigate(res.user.mustChangePassword ? '/profile' : '/');
       }, 1000);
     } catch (err) {
       setError(err.message || 'Échec de connexion');

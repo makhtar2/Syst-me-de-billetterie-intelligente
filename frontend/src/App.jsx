@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import UserManagement from './pages/UserManagement.jsx';
+import ProfileSettings from './pages/ProfileSettings.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/users" replace />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="profile" element={<ProfileSettings />} />
           <Route path="subscriptions" element={<Navigate to="/users" replace />} />
         </Route>
 
