@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { validateUserForm } from '../utils/validators';
 
 // L'email n'est pas modifiable ici : PUT /api/admin/users/:id ne l'accepte pas côté back
 // (identifiant de connexion figé après création).
@@ -7,6 +8,7 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
   const [prenom, setPrenom] = useState('');
   const [telephone, setTelephone] = useState('');
   const [role, setRole] = useState('Client');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -14,6 +16,7 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
       setPrenom(user.prenom || '');
       setTelephone(user.telephone || '');
       setRole(user.role || 'Client');
+      setError(null);
     }
   }, [user]);
 
@@ -21,8 +24,14 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!nom || !prenom || !telephone) return;
 
+    const validationError = validateUserForm({ nom, prenom, telephone }, { requireEmail: false });
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError(null);
     onSave(user.id, { nom, prenom, telephone, role });
   };
 
@@ -36,6 +45,8 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
+          {error && <div className="modal-error">{error}</div>}
+
           <div className="modal-grid">
             <div className="form-group">
               <label className="form-label">Prénom</label>
@@ -73,6 +84,9 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
                 value={telephone}
                 onChange={(e) => setTelephone(e.target.value)}
                 className="form-input"
+                placeholder="771234567"
+                pattern="^(\+?221)?\d{9}$"
+                title="9 chiffres, avec ou sans indicatif +221, ex. 771234567"
               />
             </div>
             <div className="form-group">

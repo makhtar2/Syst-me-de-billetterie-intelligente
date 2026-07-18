@@ -3,13 +3,42 @@
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Numéro sénégalais : ce qui compte, ce sont les 9 chiffres. L'indicatif +221
+// (ou 221) est accepté s'il est présent, mais n'est pas exigé.
+const PHONE_REGEX = /^(?:\+?221)?\d{9}$/;
+
 export function isValidEmail(email) {
   return typeof email === 'string' && EMAIL_REGEX.test(email.trim());
 }
 
-// Champs requis pour la création d'un utilisateur (CreateUserModal)
-export function isValidCreateUserForm({ nom, prenom, email, telephone } = {}) {
-  return Boolean(nom && prenom && email && telephone);
+export function isValidPhone(telephone) {
+  return typeof telephone === 'string' && PHONE_REGEX.test(telephone.trim());
+}
+
+// Validation du formulaire utilisateur (CreateUserModal, EditUserModal, ProfileSettings).
+// requireEmail: false pour l'édition, où l'email est en lecture seule (non modifiable côté API).
+export function validateUserForm({ nom, prenom, email, telephone } = {}, { requireEmail = true } = {}) {
+  if (!nom || !nom.trim()) {
+    return 'Le nom est obligatoire.';
+  }
+  if (!prenom || !prenom.trim()) {
+    return 'Le prénom est obligatoire.';
+  }
+  if (requireEmail) {
+    if (!email) {
+      return "L'adresse email est obligatoire.";
+    }
+    if (!isValidEmail(email)) {
+      return "Cette adresse email n'est pas valide.";
+    }
+  }
+  if (!telephone) {
+    return 'Le numéro de téléphone est obligatoire.';
+  }
+  if (!isValidPhone(telephone)) {
+    return 'Le numéro de téléphone doit comporter 9 chiffres (ex. 771234567), avec ou sans indicatif +221.';
+  }
+  return null;
 }
 
 // Règles du formulaire de connexion (Login)

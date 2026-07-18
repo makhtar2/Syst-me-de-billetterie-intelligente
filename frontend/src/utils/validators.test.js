@@ -1,6 +1,7 @@
 import {
   isValidEmail,
-  isValidCreateUserForm,
+  isValidPhone,
+  validateUserForm,
   validateLoginForm,
   validateNewPassword,
 } from './validators';
@@ -19,26 +20,67 @@ describe('isValidEmail', () => {
   });
 });
 
-describe('isValidCreateUserForm', () => {
-  test('valide quand tous les champs requis sont renseignés', () => {
-    expect(
-      isValidCreateUserForm({
-        nom: 'Dupont',
-        prenom: 'Jean',
-        email: 'jean.dupont@entreprise.com',
-        telephone: '+221771234567',
-      })
-    ).toBe(true);
+describe('isValidPhone', () => {
+  test('accepte 9 chiffres sans indicatif', () => {
+    expect(isValidPhone('771234567')).toBe(true);
   });
 
-  test('invalide si un champ requis est manquant', () => {
-    expect(
-      isValidCreateUserForm({ nom: 'Dupont', prenom: '', email: 'x@x.com', telephone: '123' })
-    ).toBe(false);
+  test('accepte le même numéro préfixé par +221', () => {
+    expect(isValidPhone('+221771234567')).toBe(true);
   });
 
-  test('invalide si aucun champ fourni', () => {
-    expect(isValidCreateUserForm()).toBe(false);
+  test('accepte le même numéro préfixé par 221 sans le +', () => {
+    expect(isValidPhone('221771234567')).toBe(true);
+  });
+
+  test('refuse un numéro trop court', () => {
+    expect(isValidPhone('77123')).toBe(false);
+  });
+
+  test('refuse un numéro trop long', () => {
+    expect(isValidPhone('7712345678')).toBe(false);
+  });
+
+  test('refuse des caractères non numériques', () => {
+    expect(isValidPhone('+221 77 123 45 67')).toBe(false);
+  });
+
+  test('refuse une valeur vide', () => {
+    expect(isValidPhone('')).toBe(false);
+  });
+});
+
+describe('validateUserForm', () => {
+  const champsValides = {
+    nom: 'Dupont',
+    prenom: 'Jean',
+    email: 'jean.dupont@entreprise.com',
+    telephone: '+221771234567',
+  };
+
+  test('retourne null quand tous les champs sont valides', () => {
+    expect(validateUserForm(champsValides)).toBeNull();
+  });
+
+  test('signale un champ requis manquant', () => {
+    expect(validateUserForm({ ...champsValides, prenom: '' })).toMatch(/prénom/i);
+  });
+
+  test('signale une adresse email invalide', () => {
+    expect(validateUserForm({ ...champsValides, email: 'jean.dupont-entreprise.com' })).toMatch(/email/i);
+  });
+
+  test('signale un numéro de téléphone invalide', () => {
+    expect(validateUserForm({ ...champsValides, telephone: '123' })).toMatch(/téléphone/i);
+  });
+
+  test("n'exige pas l'email quand requireEmail vaut false (édition)", () => {
+    const { email: _email, ...sansEmail } = champsValides;
+    expect(validateUserForm(sansEmail, { requireEmail: false })).toBeNull();
+  });
+
+  test('retourne une erreur quand aucun champ n\'est fourni', () => {
+    expect(validateUserForm()).toMatch(/nom/i);
   });
 });
 

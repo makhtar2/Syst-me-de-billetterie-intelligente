@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setStoredUser, photoUrl } from '../services/api';
-import { validateNewPassword } from '../utils/validators';
+import { validateNewPassword, validateUserForm } from '../utils/validators';
 import PasswordInput from '../components/PasswordInput';
 import './ProfileSettings.css';
 
@@ -54,6 +54,13 @@ function ProfileSettings() {
   const handleSaveInfo = async (e) => {
     e.preventDefault();
     setInfoMessage(null);
+
+    const validationError = validateUserForm({ nom, prenom, telephone }, { requireEmail: false });
+    if (validationError) {
+      setInfoMessage({ type: 'error', text: validationError });
+      return;
+    }
+
     try {
       const data = await api.updateProfile({ nom, prenom, telephone });
       applyUser(data.user);
@@ -237,6 +244,9 @@ function ProfileSettings() {
                   onChange={(e) => setTelephone(e.target.value)}
                   className="form-input"
                   disabled={user.mustChangePassword}
+                  placeholder="771234567"
+                  pattern="^(\+?221)?\d{9}$"
+                  title="9 chiffres, avec ou sans indicatif +221, ex. 771234567"
                 />
               </div>
 
