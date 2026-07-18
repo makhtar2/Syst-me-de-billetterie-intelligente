@@ -69,6 +69,9 @@ export const api = {
   createUser: (userData) =>
     request('/admin/users', { method: 'POST', body: JSON.stringify(userData) }),
 
+  updateUser: (id, userData) =>
+    request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) }),
+
   importUsers: (file) => {
     const formData = new FormData();
     formData.append('file', file);
