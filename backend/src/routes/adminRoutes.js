@@ -2,6 +2,8 @@ import express from 'express';
 import {
   createUser,
   getUsers,
+  getUserById,
+  updateUser,
   deleteUser,
   bulkUpdateStatus,
   updateUserStatus,
@@ -23,9 +25,9 @@ router.get('/dashboard/stats', getDashboardStats);
 router.post('/users/import', uploadCsv, importUsers);
 router.patch('/users/bulk-status', bulkUpdateStatus);
 
-// Gestion des utilisateurs (création, consultation, statut, suppression)
+// CRUD utilisateurs
 router.route('/users').post(createUser).get(getUsers);
 router.patch('/users/:id/status', updateUserStatus);
-router.delete('/users/:id', deleteUser);
+router.route('/users/:id').get(getUserById).put(updateUser).delete(deleteUser);
 
 export default router;
