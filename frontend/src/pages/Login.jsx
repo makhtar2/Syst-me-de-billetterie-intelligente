@@ -49,7 +49,7 @@ function Login() {
       setSuccess(true);
       setTimeout(() => {
         // Mot de passe temporaire : on impose d'abord son remplacement
-        navigate(res.user.mustChangePassword ? '/profile' : '/');
+        navigate(res.user.mustChangePassword ? '/change-password' : '/');
       }, 1000);
     } catch (err) {
       setError(err.message || 'Échec de connexion');
