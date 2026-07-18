@@ -131,20 +131,6 @@ function ProfileSettings() {
 
   return (
     <main className="main-content">
-      {/* Bandeau bloquant tant que le mot de passe temporaire n'est pas remplacé */}
-      {user.mustChangePassword && (
-        <div className="profile-alert warning">
-          <span className="material-symbols-outlined">lock_reset</span>
-          <div>
-            <strong>Changement de mot de passe requis</strong>
-            <p>
-              Vous utilisez un mot de passe temporaire. Vous devez le remplacer avant d'accéder au
-              reste de l'application.
-            </p>
-          </div>
-        </div>
-      )}
-
       <section className="page-header">
         <div>
           <h1 className="page-title">Mon profil</h1>
@@ -166,7 +152,6 @@ function ProfileSettings() {
               type="button"
               className="btn-secondary"
               onClick={() => fileInputRef.current && fileInputRef.current.click()}
-              disabled={user.mustChangePassword}
             >
               <span className="material-symbols-outlined btn-icon">photo_camera</span>
               Changer la photo
@@ -219,7 +204,6 @@ function ProfileSettings() {
                     value={prenom}
                     onChange={(e) => setPrenom(e.target.value)}
                     className="form-input"
-                    disabled={user.mustChangePassword}
                   />
                 </div>
                 <div className="form-group">
@@ -230,7 +214,6 @@ function ProfileSettings() {
                     value={nom}
                     onChange={(e) => setNom(e.target.value)}
                     className="form-input"
-                    disabled={user.mustChangePassword}
                   />
                 </div>
               </div>
@@ -243,7 +226,6 @@ function ProfileSettings() {
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value)}
                   className="form-input"
-                  disabled={user.mustChangePassword}
                   placeholder="771234567"
                   pattern="^(\+?221)?\d{9}$"
                   title="9 chiffres, avec ou sans indicatif +221, ex. 771234567"
@@ -255,7 +237,7 @@ function ProfileSettings() {
               )}
 
               <div className="profile-form-footer">
-                <button type="submit" className="btn-primary" disabled={user.mustChangePassword}>
+                <button type="submit" className="btn-primary">
                   Enregistrer
                 </button>
               </div>
@@ -302,11 +284,9 @@ function ProfileSettings() {
               )}
 
               <div className="profile-form-footer">
-                {user.mustChangePassword ? null : (
-                  <button type="button" className="btn-secondary" onClick={() => navigate('/users')}>
-                    Retour
-                  </button>
-                )}
+                <button type="button" className="btn-secondary" onClick={() => navigate('/users')}>
+                  Retour
+                </button>
                 <button type="submit" className="btn-primary">
                   Modifier le mot de passe
                 </button>

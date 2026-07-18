@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
+import ForcePasswordChange from './pages/ForcePasswordChange.jsx';
 import UserManagement from './pages/UserManagement.jsx';
 import ProfileSettings from './pages/ProfileSettings.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
@@ -10,7 +11,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        
+        <Route path="/change-password" element={<ForcePasswordChange />} />
+
         {/* Admin Dashboard Protected Layout */}
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/users" replace />} />

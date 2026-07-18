@@ -17,9 +17,10 @@ function DashboardLayout() {
     }
     setUser(storedUser);
 
-    // Mot de passe temporaire : on force le passage par la page profil
-    if (storedUser.mustChangePassword && currentPath !== '/profile') {
-      navigate('/profile', { replace: true });
+    // Mot de passe temporaire : écran dédié en dehors du dashboard, rien
+    // d'autre n'est accessible tant que ce n'est pas fait.
+    if (storedUser.mustChangePassword) {
+      navigate('/change-password', { replace: true });
     }
   }, [navigate, currentPath]);
 
