@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import CreateUserModal from '../components/CreateUserModal';
 import EditUserModal from '../components/EditUserModal';
 import ImportCsvModal from '../components/ImportCsvModal';
+import StatCard from '../components/StatCard';
 import './UserManagement.css';
 
 function UserManagement() {
@@ -254,97 +255,10 @@ function UserManagement() {
 
         {/* Stats Grid Dashboard */}
         <section className="stats-grid">
-          {/* Global Statistics Card */}
-          <div className="stats-card highlighted">
-            <h3 className="stats-card-title">Global</h3>
-            <div className="stats-metrics-row">
-              <div className="metric-item">
-                <span className="metric-value">{globalStats.total}</span>
-                <span className="metric-label">Total</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#166534' }}>{globalStats.actif}</span>
-                <span className="metric-label">Actifs</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#991b1b' }}>{globalStats.bloque}</span>
-                <span className="metric-label">Bloqués</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#64748b' }}>{globalStats.supprime}</span>
-                <span className="metric-label">Supprimés</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Admins Card */}
-          <div className="stats-card">
-            <h3 className="stats-card-title">Administrateurs</h3>
-            <div className="stats-metrics-row">
-              <div className="metric-item">
-                <span className="metric-value">{adminStats.total}</span>
-                <span className="metric-label">Total</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#166534' }}>{adminStats.actif}</span>
-                <span className="metric-label">Actifs</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#991b1b' }}>{adminStats.bloque}</span>
-                <span className="metric-label">Bloqués</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#64748b' }}>{adminStats.supprime}</span>
-                <span className="metric-label">Supprimés</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Agents Card */}
-          <div className="stats-card">
-            <h3 className="stats-card-title">Agents</h3>
-            <div className="stats-metrics-row">
-              <div className="metric-item">
-                <span className="metric-value">{agentStats.total}</span>
-                <span className="metric-label">Total</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#166534' }}>{agentStats.actif}</span>
-                <span className="metric-label">Actifs</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#991b1b' }}>{agentStats.bloque}</span>
-                <span className="metric-label">Bloqués</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#64748b' }}>{agentStats.supprime}</span>
-                <span className="metric-label">Supprimés</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Clients Card */}
-          <div className="stats-card">
-            <h3 className="stats-card-title">Clients</h3>
-            <div className="stats-metrics-row">
-              <div className="metric-item">
-                <span className="metric-value">{clientStats.total}</span>
-                <span className="metric-label">Total</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#166534' }}>{clientStats.actif}</span>
-                <span className="metric-label">Actifs</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#991b1b' }}>{clientStats.bloque}</span>
-                <span className="metric-label">Bloqués</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-value" style={{ color: '#64748b' }}>{clientStats.supprime}</span>
-                <span className="metric-label">Supprimés</span>
-              </div>
-            </div>
-          </div>
+          <StatCard title="Global" icon="insights" accent="global" stats={globalStats} />
+          <StatCard title="Administrateurs" icon="admin_panel_settings" accent="admin" stats={adminStats} />
+          <StatCard title="Agents" icon="support_agent" accent="agent" stats={agentStats} />
+          <StatCard title="Clients" icon="person" accent="client" stats={clientStats} />
         </section>
 
         {/* Filter and Search Bar */}
