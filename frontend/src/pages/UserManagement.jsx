@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import CreateUserModal from '../components/CreateUserModal';
+import EditUserModal from '../components/EditUserModal';
 import ImportCsvModal from '../components/ImportCsvModal';
 import './UserManagement.css';
 
@@ -21,6 +22,7 @@ function UserManagement() {
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   
   // CSV import state
   const [csvSuccessMessage, setCsvSuccessMessage] = useState('');
@@ -178,6 +180,17 @@ function UserManagement() {
       setIsCreateModalOpen(false);
     } catch (err) {
       console.error("Échec création utilisateur via API", err);
+    }
+  };
+
+  // Edit User Handler
+  const handleUpdateUser = async (id, userData) => {
+    try {
+      await api.updateUser(id, userData);
+      fetchUsers();
+      setEditingUser(null);
+    } catch (err) {
+      console.error("Échec de la mise à jour via API", err);
     }
   };
 
@@ -467,6 +480,15 @@ function UserManagement() {
                               <>
                                 <button
                                   className="icon-btn"
+                                  onClick={() => setEditingUser(user)}
+                                  title="Modifier l'utilisateur"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#475569' }}>
+                                    edit
+                                  </span>
+                                </button>
+                                <button
+                                  className="icon-btn"
                                   onClick={() => handleToggleStatus(user.id, user.status)}
                                   title={user.status === 'Actif' ? 'Bloquer le compte' : 'Activer le compte'}
                                 >
@@ -549,6 +571,14 @@ function UserManagement() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreateUser}
+      />
+
+      {/* EDIT USER MODAL */}
+      <EditUserModal
+        isOpen={!!editingUser}
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        onSave={handleUpdateUser}
       />
 
       {/* CSV IMPORT MODAL */}
