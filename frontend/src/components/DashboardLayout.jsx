@@ -88,11 +88,11 @@ function DashboardLayout() {
                 )}
               </div>
               <span className="nav-user-name">{user.prenom} {user.nom}</span>
-              <button 
-                onClick={handleLogout} 
-                className="icon-btn" 
-                title="Se déconnecter" 
-                style={{ color: '#ef4444', marginLeft: '0.5rem' }}
+              <button
+                onClick={handleLogout}
+                className="icon-btn logout-btn"
+                title="Se déconnecter"
+                aria-label="Se déconnecter"
               >
                 <span className="material-symbols-outlined">logout</span>
               </button>

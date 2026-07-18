@@ -169,6 +169,32 @@ body {
   color: #312e81;
 }
 
+/* Séparé du groupe avatar+nom par une fine ligne (au lieu d'un simple
+   margin arbitraire), sans casser la forme circulaire de .icon-btn.
+   Neutre au repos, rouge seulement au survol : la déconnexion n'est
+   pas une action destructrice à signaler en rouge en permanence. */
+.logout-btn {
+  position: relative;
+  color: #94a3b8;
+  margin-left: 0.85rem;
+}
+
+.logout-btn::before {
+  content: '';
+  position: absolute;
+  left: -0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-glass);
+}
+
+.logout-btn:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
 /* En dessous de 720px, la marque + les 2 onglets + le nom + le logout ne
    tiennent plus sur une seule ligne : on garde les icônes, on retire le
    texte (les title= prennent le relais pour l'accessibilité). */
@@ -247,6 +273,25 @@ body {
   color: var(--text-muted);
   margin-top: 0.25rem;
   font-weight: 500;
+}
+
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 1rem;
+  background-color: rgba(79, 70, 229, 0.1);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
 }
 
 /* Material 3 / Glass Cards */
