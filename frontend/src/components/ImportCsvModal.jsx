@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function ImportCsvModal({ isOpen, onClose, onImport, successMessage }) {
+function ImportCsvModal({ isOpen, onClose, onImport, successMessage, errors = [] }) {
   const [file, setFile] = useState(null);
 
   if (!isOpen) return null;
@@ -43,6 +43,30 @@ function ImportCsvModal({ isOpen, onClose, onImport, successMessage }) {
             >
               <span className="material-symbols-outlined">info</span>
               <span>{successMessage}</span>
+            </div>
+          )}
+
+          {errors.length > 0 && (
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                maxHeight: '160px',
+                overflowY: 'auto',
+              }}
+            >
+              <strong>{errors.length} ligne(s) ignorée(s) :</strong>
+              <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
+                {errors.map((err, i) => (
+                  <li key={i}>
+                    Ligne {err.ligne}{err.email ? ` (${err.email})` : ''} — {err.raison}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
