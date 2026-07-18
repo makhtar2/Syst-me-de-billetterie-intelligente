@@ -4,6 +4,9 @@ import { generateTempPassword } from '../utils/generatePassword.js';
 import { sendActivationEmail } from '../utils/sendEmail.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
 
+// Rôles acceptés par le service (doit rester aligné sur l'énumération du modèle)
+const ROLES = ['Administrateur', 'Agent', 'Client'];
+
 // Construit le filtre Mongo à partir des query params (role, status, search)
 const buildUserFilter = ({ role, status, search }) => {
   const filter = {};
@@ -84,6 +87,12 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { nom, prenom, telephone, role, photo } = req.body;
+
+    // Une saisie invalide doit renvoyer 400, jamais une erreur serveur.
+    if (role !== undefined && !ROLES.includes(role)) {
+      return res.status(400).json({ message: `Rôle invalide. Valeurs autorisées : ${ROLES.join(', ')}` });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable' });
