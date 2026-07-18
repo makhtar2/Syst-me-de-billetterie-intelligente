@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isValidCreateUserForm } from '../utils/validators';
 
 function CreateUserModal({ isOpen, onClose, onCreate }) {
   const [nom, setNom] = useState('');
@@ -11,8 +12,8 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!nom || !prenom || !email || !telephone) return;
-    
+    if (!isValidCreateUserForm({ nom, prenom, email, telephone })) return;
+
     onCreate({ nom, prenom, email, telephone, role });
     
     // Reset Form
