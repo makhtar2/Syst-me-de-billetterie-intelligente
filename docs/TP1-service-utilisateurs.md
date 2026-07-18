@@ -50,7 +50,7 @@ npm run test:unitaires
 npm run test:api
 
 # frontend
-npm test               # 12 tests Jest sur validators.js
+npm test               # 22 tests Jest sur validators.js
 ```
 
 Hors périmètre pour ce TP : service Abonnements, service Billetterie/QR Code — pas encore développés, on reste sur la gestion des utilisateurs comme demandé.
@@ -75,14 +75,15 @@ Hors périmètre pour ce TP : service Abonnements, service Billetterie/QR Code �
 | A29-A34 | Import CSV (valide, doublon, lignes invalides, fichier non-CSV, sans auth) | API | Import partiel correct, erreurs détaillées ligne par ligne |
 | A35-A45 | CRUD complet sur un compte (lecture, modification, garde-fous sur email/statut/rôle) | API | Édition possible, mais email et statut restent protégés |
 
-### Front — 12 tests unitaires (Jest, sur `validators.js`)
+### Front — 22 tests unitaires (Jest, sur `validators.js`)
 
-| Fonction testée | Cas couverts |
-|---|---|
-| `isValidEmail` | email valide, invalide, vide |
-| `isValidCreateUserForm` | formulaire complet, champ manquant, aucun champ |
-| `validateLoginForm` | email vide, mot de passe trop court, cas valide |
-| `validateNewPassword` | mot de passe trop court, confirmation différente, cas valide |
+| Fonction testée | Cas couverts | Nb |
+|---|---|---|
+| `isValidEmail` | email valide, sans `@`, valeur vide | 3 |
+| `isValidPhone` | 9 chiffres seuls, préfixé `+221`, préfixé `221`, trop court, trop long, caractères non numériques, vide | 7 |
+| `validateUserForm` | formulaire valide, champ requis manquant, email invalide, téléphone invalide, email facultatif en édition, aucun champ fourni | 6 |
+| `validateLoginForm` | email vide, mot de passe trop court, cas valide | 3 |
+| `validateNewPassword` | mot de passe trop court, confirmation différente, cas valide | 3 |
 
 Ces règles étaient à l'origine écrites directement dans `Login.jsx`, `CreateUserModal.jsx` et `ProfileSettings.jsx`, donc impossibles à tester sans monter tout le composant. On les a sorties dans `utils/validators.js` sans changer le comportement.
 
