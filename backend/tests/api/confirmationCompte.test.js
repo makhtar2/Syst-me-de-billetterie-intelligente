@@ -196,6 +196,47 @@ describe('API — Confirmation de compte', () => {
     });
   });
 
+  describe('Neutralisation du lien', () => {
+    test('un changement de mot de passe classique tue le lien de confirmation', async () => {
+      // Faille corrigée : le lien restait valide 48 h après que l'utilisateur
+      // avait choisi son mot de passe par la voie classique. Quiconque avait
+      // accès à l'e-mail d'activation pouvait alors reprendre le compte.
+      const user = await creerUtilisateur({ status: 'Bloqué', email: 'proprietaire@test.com' });
+      await request(app).patch(`/api/admin/users/${user.id}/status`).set('Authorization', header).send({ status: 'Actif' });
+      const lien = (await avecJeton(user.id)).confirmationToken;
+
+      // L'utilisateur se connecte avec un mot de passe connu du test
+      // (le temporaire réel n'est pas récupérable, il part par e-mail).
+      const compte = await avecJeton(user.id);
+      compte.password = 'MotDePasseTemp1';
+      await compte.save();
+      const connexion = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'proprietaire@test.com', password: 'MotDePasseTemp1' })
+        .expect(200);
+
+      // Changement par la voie classique
+      await request(app)
+        .put('/api/users/profile/password')
+        .set('Authorization', `Bearer ${connexion.body.token}`)
+        .send({ oldPassword: 'MotDePasseTemp1', newPassword: 'SonVraiMotDePasse1' })
+        .expect(200);
+
+      // Le lien d'activation ne doit plus rien ouvrir
+      await request(app).get(`/api/auth/confirmation/${lien}`).expect(404);
+      await request(app)
+        .post(`/api/auth/confirmation/${lien}`)
+        .send({ motDePasse: 'MotDePasseAttaquant1' })
+        .expect(404);
+
+      // Et le mot de passe choisi reste le bon
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'proprietaire@test.com', password: 'SonVraiMotDePasse1' })
+        .expect(200);
+    });
+  });
+
   describe('Coexistence avec le mot de passe temporaire', () => {
     test('le mot de passe temporaire reste utilisable tant que le lien n’a pas servi', async () => {
       // Le cahier des charges impose ce mécanisme : il ne doit pas être

@@ -57,6 +57,17 @@ export const changePassword = async (req, res) => {
     user.mustChangePassword = false; // le mot de passe temporaire est remplacé
     await user.save();
 
+    // Un mot de passe choisi par l'utilisateur neutralise tout lien de
+    // confirmation encore en circulation. Sans cela, l'e-mail d'activation
+    // permettait de reprendre le compte pendant 48 h, même après que son
+    // propriétaire avait défini son propre mot de passe.
+    // $unset direct : les champs sont `select: false` et absents de req.user,
+    // une assignation sur le document ne serait pas persistée.
+    await User.updateOne(
+      { _id: user._id },
+      { $unset: { confirmationToken: 1, confirmationTokenExpire: 1 } }
+    );
+
     return res.status(200).json({ message: 'Mot de passe modifié', user });
   } catch (error) {
     return res.status(500).json({ message: 'Erreur lors du changement de mot de passe', error: error.message });
