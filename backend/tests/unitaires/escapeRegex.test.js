@@ -1,3 +1,17 @@
+/**
+ * Tests unitaires — Échappement des caractères spéciaux de la recherche
+ *
+ * Cas couverts    : U4 à U7 (tableau de synthèse du livrable)
+ * Fonctionnalité  : F9 — Recherche et filtrage
+ *
+ * Ces tests couvrent une régression réelle, documentée en §5.1 du livrable :
+ * la recherche construisait une expression régulière directement à partir de
+ * la saisie. Tous les numéros du projet commençant par « + », un quantificateur
+ * invalide en tête de motif, toute recherche par téléphone renvoyait une
+ * erreur 500. Le premier test reproduit littéralement la panne.
+ *
+ * Aucune base de données ni requête réseau : fonction pure.
+ */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { escapeRegex } from '../../src/utils/escapeRegex.js';

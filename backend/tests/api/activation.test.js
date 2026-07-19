@@ -1,3 +1,24 @@
+/**
+ * Tests d'API — Activation, blocage, suppression et actions groupées
+ *
+ * Cas couverts    : A20 à A28 (tableau de synthèse du livrable)
+ * Fonctionnalités : F4 — Activation et mot de passe temporaire
+ *                   F5 — Changement de mot de passe imposé
+ *                   F7 — Actions groupées (effet de masse)
+ *                   F8 — Suppression logique
+ *
+ * C'est le cœur métier du service. Trois règles y sont vérifiées :
+ *   - activer régénère un mot de passe temporaire ET le stocke haché ;
+ *   - bloquer ne régénère RIEN (sinon on invaliderait un accès sans raison) ;
+ *   - supprimer est logique : l'enregistrement reste en base, seul le statut
+ *     change, afin de préserver la traçabilité.
+ *
+ * Le dernier bloc couvre le cycle complet du verrouillage : un compte à mot de
+ * passe temporaire ne peut rien administrer, mais garde le droit de changer son
+ * mot de passe — puis retrouve l'accès.
+ *
+ * L'envoi d'e-mails est neutralisé par helpers.js : aucun message réel ne part.
+ */
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';

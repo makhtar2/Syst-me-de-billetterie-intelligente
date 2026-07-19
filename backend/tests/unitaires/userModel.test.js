@@ -1,3 +1,19 @@
+/**
+ * Tests unitaires — Schéma et sérialisation du modèle User
+ *
+ * Cas couverts    : U8 à U14 (tableau de synthèse du livrable)
+ * Fonctionnalités : F3 — Hachage / non-divulgation du mot de passe
+ *                   F2 — Contrôle des rôles (énumération)
+ *                   F4 — Valeurs par défaut à la création
+ *
+ * Deux règles de sécurité sont vérifiées ici :
+ *   - le mot de passe ne doit JAMAIS apparaître dans une réponse JSON ;
+ *   - un compte créé naît « Bloqué », donc inutilisable avant activation
+ *     explicite par un administrateur.
+ *
+ * Ces tests portent sur la validation et la sérialisation du schéma Mongoose :
+ * aucune connexion à MongoDB n'est nécessaire, les documents ne sont pas sauvegardés.
+ */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import User from '../../src/models/User.js';

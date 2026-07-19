@@ -1,3 +1,18 @@
+/**
+ * Tests d'API — Authentification et contrôle d'accès
+ *
+ * Cas couverts    : A1 à A8 (tableau de synthèse du livrable)
+ * Fonctionnalités : F1 — Authentification JWT (porte d'entrée du service)
+ *                   F2 — Contrôle d'accès administrateur
+ *
+ * Ce sont les deux fonctions les plus critiques : une faille sur F2 laisserait
+ * un Agent ou un Client administrer l'ensemble des comptes. On vérifie donc
+ * les trois barrières successives — jeton absent, jeton invalide, rôle
+ * insuffisant — en plus du cas passant.
+ *
+ * Requêtes HTTP réelles via supertest, contre une base de test isolée
+ * (voir helpers.js). Aucun port réseau n'est ouvert.
+ */
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';

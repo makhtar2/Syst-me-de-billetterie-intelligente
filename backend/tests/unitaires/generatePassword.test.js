@@ -1,3 +1,15 @@
+/**
+ * Tests unitaires — Génération du mot de passe temporaire
+ *
+ * Cas couverts    : U1 à U3 (tableau de synthèse du livrable)
+ * Fonctionnalité  : F4 — Activation de compte (criticité : élevée)
+ *
+ * Le cahier des charges impose « un mot de passe temporaire de 8 caractères
+ * généré automatiquement ». Cette longueur est donc vérifiée en priorité :
+ * c'est une exigence littérale, pas un choix d'implémentation.
+ *
+ * Aucune base de données ni requête réseau : fonction pure, exécution instantanée.
+ */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTempPassword } from '../../src/utils/generatePassword.js';
