@@ -53,7 +53,7 @@ npm run test:api
 npm test               # 22 tests Jest sur validators.js
 ```
 
-Hors périmètre pour ce TP : service Abonnements, service Billetterie/QR Code — pas encore développés, on reste sur la gestion des utilisateurs comme demandé.
+Hors périmètre pour ce TP : service Abonnements, service Billetterie/QR Code — pas encore développés.
 
 ---
 
