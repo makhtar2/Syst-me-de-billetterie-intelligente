@@ -50,3 +50,20 @@ export const isAdmin = (req, res, next) => {
   }
   return res.status(403).json({ message: 'Accès réservé aux administrateurs' });
 };
+
+/**
+ * Autorise les administrateurs ET les agents.
+ *
+ * La vérification de validité est utilisée sur le terrain, au moment du
+ * contrôle : c'est l'agent qui scanne, pas l'administrateur. La réserver aux
+ * seuls administrateurs rendrait la fonctionnalité inutilisable.
+ *
+ * Les clients en restent exclus : interroger la validité d'un identifiant
+ * quelconque reviendrait à exposer la situation d'autres passagers.
+ */
+export const isAdminOuAgent = (req, res, next) => {
+  if (['Administrateur', 'Agent'].includes(req.utilisateur?.role)) {
+    return next();
+  }
+  return res.status(403).json({ message: 'Accès réservé aux administrateurs et aux agents' });
+};
