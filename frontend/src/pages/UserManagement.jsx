@@ -119,10 +119,16 @@ function UserManagement() {
       `${user.prenom} ${user.nom}`.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesRole = roleFilter === 'Tous' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'Tous' || user.status === statusFilter;
+    // Par défaut (aucun filtre de statut choisi), les comptes Supprimés sont
+    // cachés de la liste — comme une corbeille, ils ne s'affichent que si on
+    // filtre explicitement dessus.
+    const matchesStatus =
+      statusFilter === 'Tous' ? user.status !== 'Supprimé' : user.status === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
   });
+
+  const isTrashView = statusFilter === 'Supprimé';
 
   // Selection handlers
   const handleSelectAll = (e) => {
@@ -170,6 +176,17 @@ function UserManagement() {
       fetchUsers();
     } catch (err) {
       console.error("Échec de suppression via API", err);
+    }
+  };
+
+  // Restaure un compte Supprimé vers Bloqué (pas Actif : la restauration ne
+  // doit pas déclencher une nouvelle activation ni un nouvel e-mail).
+  const handleRestoreUser = async (id) => {
+    try {
+      await api.updateUserStatus(id, 'Bloqué');
+      fetchUsers();
+    } catch (err) {
+      console.error("Échec de la restauration via API", err);
     }
   };
 
@@ -291,9 +308,9 @@ function UserManagement() {
 
             <div className="filter-dropdown-item">
               <label className="filter-label">Statut</label>
-              <select 
-                value={statusFilter} 
-                onChange={(e) => setStatusFilter(e.target.value)} 
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="filter-select"
               >
                 <option value="Tous">Tous les statuts</option>
@@ -302,6 +319,16 @@ function UserManagement() {
                 <option value="Supprimé">Supprimés</option>
               </select>
             </div>
+
+            <button
+              type="button"
+              className={`trash-toggle-btn${isTrashView ? ' active' : ''}`}
+              onClick={() => setStatusFilter(isTrashView ? 'Tous' : 'Supprimé')}
+              title="Voir les comptes supprimés"
+            >
+              <span className="material-symbols-outlined btn-icon">delete</span>
+              Corbeille ({globalStats.supprime})
+            </button>
           </div>
         </section>
 
@@ -390,7 +417,17 @@ function UserManagement() {
                         <td className="table-td-date">{user.date}</td>
                         <td className="table-td-action">
                           <div className="action-cell">
-                            {user.status !== 'Supprimé' && (
+                            {user.status === 'Supprimé' ? (
+                              <button
+                                className="icon-btn"
+                                onClick={() => handleRestoreUser(user.id)}
+                                title="Restaurer le compte"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#166534' }}>
+                                  restore_from_trash
+                                </span>
+                              </button>
+                            ) : (
                               <>
                                 <button
                                   className="icon-btn"
@@ -428,7 +465,9 @@ function UserManagement() {
                   ) : (
                     <tr>
                       <td colSpan="8" className="table-empty-cell">
-                        Aucun utilisateur trouvé correspondant aux filtres.
+                        {isTrashView
+                          ? 'La corbeille est vide.'
+                          : 'Aucun utilisateur trouvé correspondant aux filtres.'}
                       </td>
                     </tr>
                   )}
@@ -448,29 +487,41 @@ function UserManagement() {
               <span>{selectedUserIds.length} sélectionné(s)</span>
             </div>
             <div className="bulk-action-buttons">
-              <button 
-                className="bulk-action-btn"
-                style={{ backgroundColor: '#10b981' }}
-                onClick={() => handleBulkAction('Actif')}
-              >
-                Activer
-              </button>
-              <button 
-                className="bulk-action-btn"
-                style={{ backgroundColor: '#f59e0b' }}
-                onClick={() => handleBulkAction('Bloqué')}
-              >
-                Bloquer
-              </button>
-              <button 
-                className="bulk-action-btn"
-                style={{ backgroundColor: '#ef4444' }}
-                onClick={() => handleBulkAction('Supprimé')}
-              >
-                Supprimer
-              </button>
-              <button 
-                className="bulk-action-cancel-btn" 
+              {isTrashView ? (
+                <button
+                  className="bulk-action-btn"
+                  style={{ backgroundColor: '#10b981' }}
+                  onClick={() => handleBulkAction('Bloqué')}
+                >
+                  Restaurer
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="bulk-action-btn"
+                    style={{ backgroundColor: '#10b981' }}
+                    onClick={() => handleBulkAction('Actif')}
+                  >
+                    Activer
+                  </button>
+                  <button
+                    className="bulk-action-btn"
+                    style={{ backgroundColor: '#f59e0b' }}
+                    onClick={() => handleBulkAction('Bloqué')}
+                  >
+                    Bloquer
+                  </button>
+                  <button
+                    className="bulk-action-btn"
+                    style={{ backgroundColor: '#ef4444' }}
+                    onClick={() => handleBulkAction('Supprimé')}
+                  >
+                    Supprimer
+                  </button>
+                </>
+              )}
+              <button
+                className="bulk-action-cancel-btn"
                 onClick={() => setSelectedUserIds([])}
               >
                 Annuler

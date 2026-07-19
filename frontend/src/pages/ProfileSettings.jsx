@@ -200,7 +200,7 @@ function ProfileSettings() {
             <form onSubmit={handleSaveInfo} className="modal-form">
               <div className="modal-grid">
                 <div className="form-group">
-                  <label className="form-label">Prénom</label>
+                  <label className="form-label">Prénom<span className="required-mark">*</span></label>
                   <input
                     type="text"
                     required
@@ -210,7 +210,7 @@ function ProfileSettings() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Nom</label>
+                  <label className="form-label">Nom<span className="required-mark">*</span></label>
                   <input
                     type="text"
                     required
@@ -222,7 +222,7 @@ function ProfileSettings() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Téléphone</label>
+                <label className="form-label">Téléphone<span className="required-mark">*</span></label>
                 <input
                   type="tel"
                   required
@@ -251,7 +251,7 @@ function ProfileSettings() {
             <h2 className="profile-section-title">Changer le mot de passe</h2>
             <form onSubmit={handleChangePassword} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Mot de passe actuel</label>
+                <label className="form-label">Mot de passe actuel<span className="required-mark">*</span></label>
                 <PasswordInput
                   required
                   value={oldPassword}
@@ -261,7 +261,7 @@ function ProfileSettings() {
 
               <div className="modal-grid">
                 <div className="form-group">
-                  <label className="form-label">Nouveau mot de passe</label>
+                  <label className="form-label">Nouveau mot de passe<span className="required-mark">*</span></label>
                   <PasswordInput
                     required
                     minLength={8}
@@ -270,7 +270,7 @@ function ProfileSettings() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Confirmer</label>
+                  <label className="form-label">Confirmer<span className="required-mark">*</span></label>
                   <PasswordInput
                     required
                     minLength={8}

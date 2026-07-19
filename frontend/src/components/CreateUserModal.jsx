@@ -45,7 +45,7 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
 
           <div className="modal-grid">
             <div className="form-group">
-              <label className="form-label">Prénom</label>
+              <label className="form-label">Prénom<span className="required-mark">*</span></label>
               <input
                 type="text"
                 required
@@ -56,7 +56,7 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Nom</label>
+              <label className="form-label">Nom<span className="required-mark">*</span></label>
               <input
                 type="text"
                 required
@@ -69,7 +69,7 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Adresse email</label>
+            <label className="form-label">Adresse email<span className="required-mark">*</span></label>
             <input
               type="email"
               required
@@ -82,7 +82,7 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
 
           <div className="modal-grid">
             <div className="form-group">
-              <label className="form-label">Téléphone</label>
+              <label className="form-label">Téléphone<span className="required-mark">*</span></label>
               <input
                 type="tel"
                 required
