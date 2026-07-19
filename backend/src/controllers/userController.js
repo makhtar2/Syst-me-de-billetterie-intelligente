@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import { generateTempPassword } from '../utils/generatePassword.js';
 import { sendActivationEmail } from '../utils/sendEmail.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
+import { genererConfirmationToken, dateExpirationToken } from '../utils/confirmationToken.js';
 
 // Rôles acceptés par le service (doit rester aligné sur l'énumération du modèle)
 const ROLES = ['Administrateur', 'Agent', 'Client'];
@@ -37,6 +38,11 @@ export const createUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) {
       return res.status(409).json({ message: 'Un utilisateur avec cet email existe déjà' });
+    }
+
+    const telephonePris = await User.findOne({ telephone: telephone.trim() });
+    if (telephonePris) {
+      return res.status(409).json({ message: 'Ce numéro de téléphone est déjà utilisé' });
     }
 
     // Mot de passe temporaire ; le compte reste 'Bloqué' jusqu'à activation
@@ -98,6 +104,15 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ message: 'Utilisateur introuvable' });
     }
 
+    // Le numéro doit rester unique, sauf s'il s'agit du sien : renvoyer sa
+    // fiche inchangée depuis le formulaire ne doit pas provoquer un refus.
+    if (telephone !== undefined && telephone.trim() !== user.telephone) {
+      const telephonePris = await User.findOne({ telephone: telephone.trim(), _id: { $ne: user._id } });
+      if (telephonePris) {
+        return res.status(409).json({ message: 'Ce numéro de téléphone est déjà utilisé' });
+      }
+    }
+
     if (nom !== undefined) user.nom = nom;
     if (prenom !== undefined) user.prenom = prenom;
     if (telephone !== undefined) user.telephone = telephone;
@@ -142,8 +157,16 @@ const setUserStatus = async (user, targetStatus) => {
     user.password = tempPassword; // le hook pre('save') s'occupe du hachage
     user.status = 'Actif';
     user.mustChangePassword = true;
+
+    // Lien de confirmation, valable 48 h : il offre à l'utilisateur une
+    // seconde voie, choisir son propre mot de passe plutôt qu'utiliser
+    // le mot de passe temporaire.
+    const token = genererConfirmationToken();
+    user.confirmationToken = token;
+    user.confirmationTokenExpire = dateExpirationToken();
     await user.save();
-    const emailResult = await sendActivationEmail(user, tempPassword);
+
+    const emailResult = await sendActivationEmail(user, tempPassword, token);
     return { id: user.id, status: user.status, emailSent: emailResult.sent };
   }
 

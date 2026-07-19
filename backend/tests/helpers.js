@@ -48,13 +48,18 @@ export const disconnectTestDb = async () => {
   await mongoose.disconnect();
 };
 
+// Compteur de numéros : l'e-mail ET le téléphone portent un index unique,
+// une fixture à valeur fixe ferait échouer toute création multiple.
+let compteurTelephone = 0;
+const telephoneUnique = () => `+2217${String(10000000 + compteurTelephone++).slice(0, 8)}`;
+
 // Crée un utilisateur directement en base (contourne l'API)
 export const creerUtilisateur = async (surcharges = {}) => {
   return User.create({
     nom: 'Diop',
     prenom: 'Awa',
     email: `user${Date.now()}${Math.random().toString(36).slice(2, 7)}@test.com`,
-    telephone: '+221770000000',
+    telephone: telephoneUnique(),
     role: 'Client',
     status: 'Actif',
     password: 'MotDePasse1',

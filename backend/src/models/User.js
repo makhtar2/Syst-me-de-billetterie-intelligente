@@ -24,6 +24,10 @@ const UserSchema = new mongoose.Schema(
     telephone: {
       type: String,
       required: [true, 'Le numéro de téléphone est obligatoire'],
+      // Un numéro identifie une personne : deux comptes ne peuvent pas le partager.
+      // Les doublons existants doivent être traités avant la création de l'index
+      // (voir `npm run fix:telephones`).
+      unique: true,
       trim: true,
     },
     role: {
@@ -49,6 +53,22 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       // Force le changement au premier login si créé/activé par l'admin
       default: false,
+    },
+    // Lien de confirmation envoyé à l'activation. Il permet à l'utilisateur de
+    // choisir lui-même son mot de passe, au lieu de se connecter avec celui
+    // généré automatiquement. Les deux voies restent ouvertes.
+    confirmationToken: {
+      type: String,
+      // `sparse` : l'unicité ne s'applique qu'aux documents qui portent
+      // réellement un jeton. Sans cela, tous les comptes sans jeton
+      // entreraient en collision sur la valeur nulle.
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+    confirmationTokenExpire: {
+      type: Date,
+      select: false,
     },
   },
   {
@@ -84,6 +104,11 @@ UserSchema.set('toJSON', {
   transform: (_doc, ret) => {
     delete ret.password;
     delete ret.__v;
+    // `select: false` ne protège que les requêtes : un document dont on vient
+    // d'assigner le jeton en mémoire l'exposerait dans la réponse. Or il ne
+    // doit circuler que par e-mail, vers son seul destinataire.
+    delete ret.confirmationToken;
+    delete ret.confirmationTokenExpire;
     return ret;
   },
 });

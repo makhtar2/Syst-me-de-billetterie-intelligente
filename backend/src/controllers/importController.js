@@ -64,12 +64,23 @@ export const importUsers = async (req, res) => {
         continue;
       }
 
+      // Le numéro doit être unique, y compris vis-à-vis des lignes déjà
+      // importées lors de ce même fichier : la vérification interroge la base,
+      // qui contient déjà les créations précédentes.
+      const telephone = row.telephone.trim();
+      const telephonePris = await User.findOne({ telephone });
+      if (telephonePris) {
+        summary.skipped++;
+        summary.errors.push({ ligne, email, raison: 'Téléphone déjà utilisé' });
+        continue;
+      }
+
       try {
         await User.create({
           nom: row.nom.trim(),
           prenom: row.prenom.trim(),
           email,
-          telephone: row.telephone.trim(),
+          telephone,
           role: row.role || 'Client',
           password: generateTempPassword(),
           status: 'Bloqué', // activation ultérieure par l'administrateur
