@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
+// Les modèles doivent être chargés AVANT la synchronisation : sans cet import,
+// Sequelize ignore leur existence et ne crée aucune table.
+import './models/index.js';
 import app from './app.js';
 
 dotenv.config();
