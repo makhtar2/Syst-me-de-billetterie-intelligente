@@ -365,6 +365,9 @@ export async function getHistorique(id) {
 
 // --- 4.4 Vérification de validité ---
 
+// Réponse réduite au contrat (§4.4) : le Service Billetterie qui consommera
+// cet endpoint à chaque scan n'a besoin que de savoir si le passager peut
+// monter et combien de voyages il lui reste, pas de l'abonnement complet.
 export async function verifierValidite(utilisateurId) {
   const candidats = abonnements
     .filter((a) => a.utilisateurId === utilisateurId)
@@ -374,7 +377,8 @@ export async function verifierValidite(utilisateurId) {
   if (candidats.length === 0) {
     return delay({ valide: false, abonnement: null });
   }
-  return delay({ valide: true, abonnement: candidats[0] });
+  const { id, voyagesRestants, dateExpiration } = candidats[0];
+  return delay({ valide: true, abonnement: { id, voyagesRestants, dateExpiration } });
 }
 
 // --- 4.5 Statistiques ---

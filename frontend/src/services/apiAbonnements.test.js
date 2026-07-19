@@ -349,6 +349,12 @@ describe('verifierValidite', () => {
     const result = await verifierValidite('user-sans-abonnement');
     expect(result).toEqual({ valide: false, abonnement: null });
   });
+
+  test('renvoie exactement les trois champs du contrat, rien de plus', async () => {
+    await createSouscription({ utilisateurId: 'user-1', formuleId: 2, dateDebut: '2026-07-19' });
+    const { abonnement } = await verifierValidite('user-1');
+    expect(Object.keys(abonnement).sort()).toEqual(['dateExpiration', 'id', 'voyagesRestants']);
+  });
 });
 
 describe('getStatsAbonnements', () => {
