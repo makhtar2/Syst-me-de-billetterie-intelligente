@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { getSouscriptionById, getHistorique } from '../services/apiAbonnements';
+import { getSouscriptionById, getHistorique, setSouscriptionStatut, renouvelerSouscription } from '../services/apiAbonnements';
 
 const TYPE_LABELS = {
   TICKET_SIMPLE: 'Ticket simple',
@@ -33,6 +33,9 @@ function AbonnementDetail() {
   const [historique, setHistorique] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [renewDate, setRenewDate] = useState(new Date().toISOString().slice(0, 10));
 
   const fetchDetail = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +65,40 @@ function AbonnementDetail() {
     document.title = "Détail abonnement - Système de Billetterie";
     fetchDetail();
   }, [fetchDetail]);
+
+  const handleToggleSuspend = async () => {
+    try {
+      const nextStatut = abonnement.statut === 'SUSPENDU' ? 'ACTIF' : 'SUSPENDU';
+      await setSouscriptionStatut(id, nextStatut);
+      setActionError(null);
+      fetchDetail();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleResilier = async () => {
+    if (!window.confirm("Résilier cet abonnement ? Cette action est définitive.")) return;
+    try {
+      await setSouscriptionStatut(id, 'RESILIE');
+      setActionError(null);
+      fetchDetail();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleRenouveler = async (e) => {
+    e.preventDefault();
+    try {
+      await renouvelerSouscription(id, renewDate);
+      setActionError(null);
+      setIsRenewing(false);
+      fetchDetail();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,7 +141,63 @@ function AbonnementDetail() {
           </h1>
           <p className="page-subtitle">{abonnement.formule.nom} — {TYPE_LABELS[abonnement.formule.type] || abonnement.formule.type}</p>
         </div>
+        {abonnement.statut !== 'RESILIE' && (
+          <div className="action-button-group">
+            <button className="btn-secondary" onClick={() => setIsRenewing((v) => !v)}>
+              <span className="material-symbols-outlined btn-icon">autorenew</span>
+              Renouveler
+            </button>
+            <button className="btn-secondary" onClick={handleToggleSuspend}>
+              <span className="material-symbols-outlined btn-icon">
+                {abonnement.statut === 'SUSPENDU' ? 'play_circle' : 'pause_circle'}
+              </span>
+              {abonnement.statut === 'SUSPENDU' ? 'Réactiver' : 'Suspendre'}
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={handleResilier}
+              style={{ color: '#ef4444', borderColor: '#fecaca' }}
+            >
+              <span className="material-symbols-outlined btn-icon">cancel</span>
+              Résilier
+            </button>
+          </div>
+        )}
       </section>
+
+      {actionError && (
+        <div className="offline-notice">
+          <span className="material-symbols-outlined offline-icon">error</span>
+          <div>
+            <div className="offline-title">Action impossible</div>
+            <div className="offline-text">{actionError}</div>
+          </div>
+        </div>
+      )}
+
+      {isRenewing && (
+        <section className="table-card" style={{ padding: '1.5rem 2rem' }}>
+          <form onSubmit={handleRenouveler} className="modal-grid">
+            <div className="form-group">
+              <label className="form-label">Nouvelle date de début<span className="required-mark">*</span></label>
+              <input
+                type="date"
+                value={renewDate}
+                onChange={(e) => setRenewDate(e.target.value)}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group" style={{ justifyContent: 'flex-end', flexDirection: 'row', display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+              <button type="button" className="btn-secondary" onClick={() => setIsRenewing(false)}>
+                Annuler
+              </button>
+              <button type="submit" className="btn-primary">
+                Confirmer le renouvellement
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="table-card" style={{ padding: '1.5rem 2rem' }}>
         <div className="modal-grid">
