@@ -1,428 +1,121 @@
 // Client API du Service Abonnements — voir PLAN-SERVICE-ABONNEMENTS.md §4 pour le contrat.
 //
-// SIMULATION (§5.4 du plan) : le backend (service-abonnements/, port 5060,
-// MySQL) n'est pas encore prêt. Ce module respecte exactement les signatures,
-// formes de réponse et codes d'erreur du contrat, mais travaille sur des
-// données en mémoire. Le jour où le backend est disponible, seul le corps de
-// ces fonctions change (remplacé par de vrais appels fetch) — aucun composant
-// qui consomme ce module n'aura à être modifié.
-export const USING_SIMULATION = true;
+// Branché sur le vrai service (service-abonnements/, port 5060, MySQL).
+// A tourné en simulation en mémoire le temps que le backend soit prêt (voir
+// l'historique git de ce fichier) ; signatures et formes de réponse inchangées
+// pour les composants qui le consomment.
+export const USING_SIMULATION = false;
 
-const SIMULATED_DELAY_MS = 150;
+const API_URL = import.meta.env.VITE_ABONNEMENTS_API_URL || 'http://localhost:5060/api/abonnements';
 
-const delay = (value) =>
-  new Promise((resolve) => setTimeout(() => resolve(value), SIMULATED_DELAY_MS));
-
-class ApiAbonnementsError extends Error {
+export class ApiAbonnementsError extends Error {
   constructor(message, status) {
     super(message);
     this.status = status;
   }
 }
 
-// --- Données en mémoire (remplacées par MySQL côté backend) ---
+function getToken() {
+  return localStorage.getItem('token');
+}
 
-const SEED_FORMULES = [
-  {
-    id: 1,
-    nom: 'Ticket simple',
-    description: 'Un seul voyage',
-    type: 'TICKET_SIMPLE',
-    tarif: 500,
-    dureeValiditeJours: 1,
-    nombreVoyages: 1,
-    actif: true,
-    creeLe: '2026-07-19',
-  },
-  {
-    id: 2,
-    nom: 'Abonnement mensuel 20 voyages',
-    description: 'Valable 30 jours',
-    type: 'LIMITE',
-    tarif: 15000,
-    dureeValiditeJours: 30,
-    nombreVoyages: 20,
-    actif: true,
-    creeLe: '2026-07-19',
-  },
-  {
-    id: 3,
-    nom: 'Abonnement illimité mensuel',
-    description: 'Voyages illimités pendant 30 jours',
-    type: 'ILLIMITE',
-    tarif: 25000,
-    dureeValiditeJours: 30,
-    nombreVoyages: null,
-    actif: true,
-    creeLe: '2026-07-19',
-  },
-];
-
-const cloneSeedFormules = () => SEED_FORMULES.map((f) => ({ ...f }));
-
-let nextFormuleId = 4;
-let formules = cloneSeedFormules();
-
-let nextAbonnementId = 1;
-let abonnements = [];
-
-let nextConsommationId = 1;
-let consommations = [];
-
-// --- Helpers internes ---
-
-const findFormule = (id) => formules.find((f) => f.id === Number(id));
-
-const hasSouscription = (formuleId) => abonnements.some((a) => a.formule.id === Number(formuleId));
-
-const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
-
-const STATUTS_CONNUS = ['ACTIF', 'SUSPENDU', 'EXPIRE', 'EPUISE', 'RESILIE'];
-
-const addDays = (isoDate, days) => {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-};
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-// Le statut stocké ne connaît que ACTIF (baseline) et les états manuels
-// (SUSPENDU, RESILIE). EXPIRE et EPUISE sont calculés à la lecture (§11 du
-// plan) : un abonnement ACTIF dont la date est dépassée ou le solde à zéro
-// est affiché comme tel sans qu'on ait besoin d'une tâche planifiée.
-const deriveStatut = (abo) => {
-  if (abo.statutManuel === 'SUSPENDU' || abo.statutManuel === 'RESILIE') {
-    return abo.statutManuel;
+// Le jeton vient du Service Utilisateurs (même JWT_SECRET des deux côtés,
+// PLAN-SERVICE-ABONNEMENTS.md §1) : pas d'authentification propre ici.
+async function request(path, options = {}) {
+  const headers = { ...options.headers };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (options.body !== undefined) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
-  if (today() > abo.dateExpiration) return 'EXPIRE';
-  if (abo.formule.type !== 'ILLIMITE' && abo.voyagesRestants <= 0) return 'EPUISE';
-  return 'ACTIF';
-};
 
-const serializeAbonnement = (abo) => ({
-  id: abo.id,
-  utilisateurId: abo.utilisateurId,
-  formule: { id: abo.formule.id, nom: abo.formule.nom, type: abo.formule.type },
-  dateDebut: abo.dateDebut,
-  dateExpiration: abo.dateExpiration,
-  voyagesAutorises: abo.formule.type === 'ILLIMITE' ? null : abo.voyagesAutorises,
-  voyagesConsommes: abo.voyagesConsommes,
-  voyagesRestants: abo.formule.type === 'ILLIMITE' ? null : abo.voyagesRestants,
-  statut: deriveStatut(abo),
-  creeLe: abo.creeLe,
-});
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new ApiAbonnementsError(data.message || 'Erreur serveur', res.status);
+  }
+  return data;
+}
+
+// Construit une query string en ignorant les paramètres non fournis.
+function toQueryString(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') query.set(key, value);
+  });
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
 
 // --- 4.1 Formules ---
 
-export async function createFormule({ nom, description, type, tarif, dureeValiditeJours, nombreVoyages }) {
-  if (!nom || !type || tarif == null || dureeValiditeJours == null) {
-    throw new ApiAbonnementsError('Champs obligatoires manquants (nom, type, tarif, dureeValiditeJours)', 400);
-  }
-  if (!['TICKET_SIMPLE', 'LIMITE', 'ILLIMITE'].includes(type)) {
-    throw new ApiAbonnementsError('Type de formule invalide', 400);
-  }
-  if (Number(tarif) < 0) {
-    throw new ApiAbonnementsError('Le tarif doit être positif', 400);
-  }
-  if (Number(dureeValiditeJours) <= 0) {
-    throw new ApiAbonnementsError('La durée de validité doit être supérieure à 0 jour', 400);
-  }
-  const formule = {
-    id: nextFormuleId++,
-    nom,
-    description: description || '',
-    type,
-    tarif,
-    dureeValiditeJours,
-    nombreVoyages: type === 'TICKET_SIMPLE' ? 1 : type === 'ILLIMITE' ? null : nombreVoyages,
-    actif: true,
-    creeLe: today(),
-  };
-  formules.push(formule);
-  return delay({ formule });
+export async function createFormule(payload) {
+  return request('/formules', { method: 'POST', body: JSON.stringify(payload) });
 }
 
-export async function getFormules({ type, actif } = {}) {
-  let result = formules;
-  if (type) result = result.filter((f) => f.type === type);
-  if (actif !== undefined) {
-    const actifBool = actif === true || actif === 'true';
-    result = result.filter((f) => f.actif === actifBool);
-  }
-  return delay(result);
+export async function getFormules(params = {}) {
+  return request(`/formules${toQueryString(params)}`);
 }
 
 export async function getFormuleById(id) {
-  const formule = findFormule(id);
-  if (!formule) throw new ApiAbonnementsError('Formule introuvable', 404);
-  return delay({ formule });
+  return request(`/formules/${id}`);
 }
 
-// Une fois qu'une formule a au moins une souscription, ses conditions
-// financières (tarif, durée, nombre de voyages) sont figées : ça ne changerait
-// rien pour les clients déjà engagés. Seuls le nom et la description restent
-// modifiables. Renvoyer la valeur déjà en place (formulaire d'édition qui
-// soumet tout l'objet sans rien changer) n'est pas traité comme une tentative
-// de modification.
-export async function updateFormule(id, { nom, description, tarif, dureeValiditeJours, nombreVoyages }) {
-  const formule = findFormule(id);
-  if (!formule) throw new ApiAbonnementsError('Formule introuvable', 404);
-
-  const changeReellement = (valeur, actuelle) => valeur !== undefined && Number(valeur) !== Number(actuelle);
-
-  if (hasSouscription(id)) {
-    if (changeReellement(tarif, formule.tarif)) {
-      throw new ApiAbonnementsError('Le tarif ne peut plus être modifié : des clients ont déjà souscrit', 409);
-    }
-    if (changeReellement(dureeValiditeJours, formule.dureeValiditeJours)) {
-      throw new ApiAbonnementsError('La durée de validité ne peut plus être modifiée : des clients ont déjà souscrit', 409);
-    }
-    if (formule.type === 'LIMITE' && changeReellement(nombreVoyages, formule.nombreVoyages)) {
-      throw new ApiAbonnementsError('Le nombre de voyages ne peut plus être modifié : des clients ont déjà souscrit', 409);
-    }
-  }
-
-  if (nom !== undefined) formule.nom = nom;
-  if (description !== undefined) formule.description = description;
-  if (tarif !== undefined) formule.tarif = tarif;
-  if (dureeValiditeJours !== undefined) formule.dureeValiditeJours = dureeValiditeJours;
-  if (nombreVoyages !== undefined && formule.type === 'LIMITE') formule.nombreVoyages = nombreVoyages;
-  return delay({ formule });
+export async function updateFormule(id, payload) {
+  return request(`/formules/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
 
 export async function setFormuleActive(id, actif) {
-  const formule = findFormule(id);
-  if (!formule) throw new ApiAbonnementsError('Formule introuvable', 404);
-  if (typeof actif !== 'boolean') {
-    throw new ApiAbonnementsError('La valeur actif doit être un booléen', 400);
-  }
-  formule.actif = actif;
-  return delay({ formule });
+  return request(`/formules/${id}/actif`, { method: 'PATCH', body: JSON.stringify({ actif }) });
 }
 
 // --- 4.2 Souscriptions ---
 
-export async function createSouscription({ utilisateurId, formuleId, dateDebut }) {
-  if (!utilisateurId || !formuleId || !dateDebut) {
-    throw new ApiAbonnementsError('Champs obligatoires manquants (utilisateurId, formuleId, dateDebut)', 400);
-  }
-  if (!DATE_ISO.test(dateDebut)) {
-    throw new ApiAbonnementsError('La date de début doit être au format AAAA-MM-JJ', 400);
-  }
-  const formule = findFormule(formuleId);
-  if (!formule) {
-    throw new ApiAbonnementsError('Formule introuvable', 404);
-  }
-  if (!formule.actif) {
-    throw new ApiAbonnementsError('Cette formule a été retirée du catalogue', 409);
-  }
-
-  // Un client ne peut avoir qu'un seul abonnement Limité/Illimité en cours à
-  // la fois (il paie déjà pour un titre valide) ; les tickets simples restent
-  // cumulables, comme un carnet de tickets.
-  if (formule.type !== 'TICKET_SIMPLE') {
-    const dejaEnCours = abonnements.some(
-      (a) =>
-        a.utilisateurId === utilisateurId &&
-        a.formule.type !== 'TICKET_SIMPLE' &&
-        ['ACTIF', 'SUSPENDU', 'EPUISE'].includes(deriveStatut(a))
-    );
-    if (dejaEnCours) {
-      throw new ApiAbonnementsError('Ce client a déjà un abonnement en cours', 409);
-    }
-  }
-
-  const abo = {
-    id: nextAbonnementId++,
-    utilisateurId,
-    formule,
-    dateDebut,
-    dateExpiration: addDays(dateDebut, formule.dureeValiditeJours),
-    voyagesAutorises: formule.nombreVoyages,
-    voyagesConsommes: 0,
-    voyagesRestants: formule.nombreVoyages,
-    statutManuel: null,
-    creeLe: today(),
-  };
-  abonnements.push(abo);
-  return delay({ abonnement: serializeAbonnement(abo) });
+export async function createSouscription(payload) {
+  return request('/souscriptions', { method: 'POST', body: JSON.stringify(payload) });
 }
 
-export async function getSouscriptions({ utilisateurId, statut, type, recherche, expireSous } = {}) {
-  if (statut !== undefined && !STATUTS_CONNUS.includes(statut)) {
-    throw new ApiAbonnementsError('Statut de filtre invalide', 400);
-  }
-  if (expireSous !== undefined && Number.isNaN(Number(expireSous))) {
-    throw new ApiAbonnementsError('expireSous doit être un nombre de jours', 400);
-  }
-
-  let result = abonnements;
-  if (utilisateurId) result = result.filter((a) => a.utilisateurId === utilisateurId);
-  if (type) result = result.filter((a) => a.formule.type === type);
-  if (recherche) {
-    const q = recherche.toLowerCase();
-    result = result.filter((a) => a.utilisateurId.toLowerCase().includes(q));
-  }
-  // Les statuts EXPIRE/EPUISE ne sont jamais stockés tels quels : le filtre
-  // doit passer par le statut recalculé, pas par une colonne figée.
-  let serialized = result.map(serializeAbonnement);
-  if (statut) serialized = serialized.filter((a) => a.statut === statut);
-  if (expireSous !== undefined) {
-    const limite = addDays(today(), Number(expireSous));
-    serialized = serialized.filter((a) => a.statut === 'ACTIF' && a.dateExpiration <= limite);
-  }
-  return delay(serialized);
+export async function getSouscriptions(params = {}) {
+  return request(`/souscriptions${toQueryString(params)}`);
 }
-
-const findAbonnement = (id) => abonnements.find((a) => a.id === Number(id));
 
 export async function getSouscriptionById(id) {
-  const abo = findAbonnement(id);
-  if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
-  return delay({ abonnement: serializeAbonnement(abo) });
+  return request(`/souscriptions/${id}`);
 }
 
 export async function setSouscriptionStatut(id, statut) {
-  if (!['SUSPENDU', 'ACTIF', 'RESILIE'].includes(statut)) {
-    throw new ApiAbonnementsError('Statut invalide', 400);
-  }
-  const abo = findAbonnement(id);
-  if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
-  // Une résiliation est définitive : la contourner permettrait de réactiver
-  // un abonnement pour souscrire un deuxième en parallèle.
-  if (abo.statutManuel === 'RESILIE') {
-    throw new ApiAbonnementsError('Cet abonnement est résilié', 409);
-  }
-  abo.statutManuel = statut === 'ACTIF' ? null : statut;
-  return delay({ abonnement: serializeAbonnement(abo) });
+  return request(`/souscriptions/${id}/statut`, { method: 'PATCH', body: JSON.stringify({ statut }) });
 }
 
 export async function renouvelerSouscription(id, dateDebut) {
-  const abo = findAbonnement(id);
-  if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
-  if (abo.formule.type === 'TICKET_SIMPLE') {
-    throw new ApiAbonnementsError('Un ticket simple ne se renouvelle pas, il se rachète', 409);
-  }
-  if (abo.statutManuel === 'RESILIE') {
-    throw new ApiAbonnementsError('Cet abonnement est résilié', 409);
-  }
-  abo.dateDebut = dateDebut;
-  abo.dateExpiration = addDays(dateDebut, abo.formule.dureeValiditeJours);
-  abo.voyagesConsommes = 0;
-  abo.voyagesRestants = abo.formule.nombreVoyages;
-  abo.statutManuel = null;
-  return delay({ abonnement: serializeAbonnement(abo) });
+  return request(`/souscriptions/${id}/renouveler`, {
+    method: 'POST',
+    body: JSON.stringify({ dateDebut }),
+  });
 }
 
 // --- 4.3 Consommation et historique ---
 
 export async function consommerVoyage(id, validationId) {
-  if (!validationId) {
-    throw new ApiAbonnementsError('validationId obligatoire', 400);
-  }
-  const abo = findAbonnement(id);
-  if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
-
-  // Un scan rejoué (double lecture du même QR Code, retry réseau…) ne doit
-  // jamais décompter deux fois le même voyage.
-  const dejaEnregistre = consommations.some(
-    (c) => c.abonnementId === abo.id && c.validationId === validationId
-  );
-  if (dejaEnregistre) {
-    throw new ApiAbonnementsError('Ce voyage a déjà été enregistré', 409);
-  }
-
-  const statut = deriveStatut(abo);
-  if (statut === 'SUSPENDU') throw new ApiAbonnementsError('Abonnement suspendu', 409);
-  if (statut === 'EXPIRE') throw new ApiAbonnementsError('Abonnement expiré', 409);
-  if (statut === 'EPUISE') throw new ApiAbonnementsError('Solde de voyages épuisé', 409);
-  if (statut === 'RESILIE') throw new ApiAbonnementsError('Abonnement résilié', 409);
-
-  abo.voyagesConsommes += 1;
-  if (abo.formule.type !== 'ILLIMITE') {
-    abo.voyagesRestants -= 1;
-  }
-
-  const consommation = {
-    id: nextConsommationId++,
-    dateVoyage: today(),
-    validationId,
-  };
-  consommations.push({ ...consommation, abonnementId: abo.id });
-
-  return delay({ abonnement: serializeAbonnement(abo), consommation });
+  return request(`/souscriptions/${id}/consommer`, {
+    method: 'POST',
+    body: JSON.stringify({ validationId }),
+  });
 }
 
 export async function getHistorique(id) {
-  const abo = findAbonnement(id);
-  if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
-  const historique = consommations
-    .filter((c) => c.abonnementId === abo.id)
-    .map(({ id: cid, dateVoyage, validationId }) => ({ id: cid, dateVoyage, validationId }));
-  return delay(historique);
+  return request(`/souscriptions/${id}/historique`);
 }
 
 // --- 4.4 Vérification de validité ---
 
-// Réponse réduite au contrat (§4.4) : le Service Billetterie qui consommera
-// cet endpoint à chaque scan n'a besoin que de savoir si le passager peut
-// monter et combien de voyages il lui reste, pas de l'abonnement complet.
 export async function verifierValidite(utilisateurId) {
-  const candidats = abonnements
-    .filter((a) => a.utilisateurId === utilisateurId)
-    .map(serializeAbonnement)
-    .filter((a) => a.statut === 'ACTIF');
-
-  if (candidats.length === 0) {
-    return delay({ valide: false, abonnement: null });
-  }
-  const { id, voyagesRestants, dateExpiration } = candidats[0];
-  return delay({ valide: true, abonnement: { id, voyagesRestants, dateExpiration } });
+  return request(`/validite/${utilisateurId}`);
 }
 
 // --- 4.5 Statistiques ---
 
 export async function getStatsAbonnements() {
-  const serialized = abonnements.map(serializeAbonnement);
-
-  const parStatut = { ACTIF: 0, SUSPENDU: 0, EXPIRE: 0, EPUISE: 0, RESILIE: 0 };
-  const parType = { TICKET_SIMPLE: 0, LIMITE: 0, ILLIMITE: 0 };
-  let voyagesConsommesTotal = 0;
-  let expirentSous7Jours = 0;
-  let revenuTotal = 0;
-
-  const dansSeptJours = addDays(today(), 7);
-
-  for (const abo of serialized) {
-    parStatut[abo.statut] = (parStatut[abo.statut] || 0) + 1;
-    parType[abo.formule.type] = (parType[abo.formule.type] || 0) + 1;
-    voyagesConsommesTotal += abo.voyagesConsommes;
-    if (abo.statut === 'ACTIF' && abo.dateExpiration <= dansSeptJours) {
-      expirentSous7Jours += 1;
-    }
-    const formule = findFormule(abo.formule.id);
-    if (formule) revenuTotal += formule.tarif;
-  }
-
-  return delay({
-    stats: {
-      total: serialized.length,
-      parStatut,
-      parType,
-      voyagesConsommesTotal,
-      expirentSous7Jours,
-      revenuTotal,
-    },
-  });
-}
-
-// Réservé aux tests : remet les données simulées à leur état initial.
-export function __resetSimulation() {
-  formules = cloneSeedFormules();
-  nextFormuleId = 4;
-  abonnements = [];
-  nextAbonnementId = 1;
-  consommations = [];
-  nextConsommationId = 1;
+  return request('/dashboard/stats');
 }
