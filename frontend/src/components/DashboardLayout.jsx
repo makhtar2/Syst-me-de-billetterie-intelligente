@@ -81,6 +81,14 @@ function DashboardLayout() {
               <span className="nav-link-text">Abonnements</span>
             </Link>
             <Link
+              to="/stats"
+              title="Tableau de bord"
+              className={`nav-link-item ${currentPath === '/stats' ? 'active' : ''}`}
+            >
+              <span className="material-symbols-outlined">bar_chart</span>
+              <span className="nav-link-text">Tableau de bord</span>
+            </Link>
+            <Link
               to="/profile"
               title="Mon profil"
               className={`nav-link-item ${currentPath === '/profile' ? 'active' : ''}`}
