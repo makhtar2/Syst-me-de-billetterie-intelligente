@@ -65,6 +65,14 @@ function DashboardLayout() {
               <span className="nav-link-text">Utilisateurs</span>
             </Link>
             <Link
+              to="/formules"
+              title="Formules"
+              className={`nav-link-item ${currentPath === '/formules' ? 'active' : ''}`}
+            >
+              <span className="material-symbols-outlined">confirmation_number</span>
+              <span className="nav-link-text">Formules</span>
+            </Link>
+            <Link
               to="/profile"
               title="Mon profil"
               className={`nav-link-item ${currentPath === '/profile' ? 'active' : ''}`}
