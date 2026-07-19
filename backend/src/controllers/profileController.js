@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import User from '../models/User.js';
 import { PHOTO_DIR } from '../middleware/upload.js';
 
 // GET /api/users/profile — Informations du compte connecté
@@ -12,6 +13,14 @@ export const updateProfile = async (req, res) => {
   try {
     const { nom, prenom, telephone, photo } = req.body;
     const user = req.user;
+
+    // Le numéro doit rester unique, sauf s'il s'agit déjà du sien.
+    if (telephone !== undefined && telephone.trim() !== user.telephone) {
+      const telephonePris = await User.findOne({ telephone: telephone.trim(), _id: { $ne: user._id } });
+      if (telephonePris) {
+        return res.status(409).json({ message: 'Ce numéro de téléphone est déjà utilisé' });
+      }
+    }
 
     if (nom !== undefined) user.nom = nom;
     if (prenom !== undefined) user.prenom = prenom;
