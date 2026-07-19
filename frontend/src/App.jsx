@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import ForcePasswordChange from './pages/ForcePasswordChange.jsx';
+import ConfirmAccount from './pages/ConfirmAccount.jsx';
 import UserManagement from './pages/UserManagement.jsx';
 import FormulesManagement from './pages/FormulesManagement.jsx';
 import AbonnementsManagement from './pages/AbonnementsManagement.jsx';
@@ -16,6 +17,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ForcePasswordChange />} />
+        <Route path="/confirmation/:token" element={<ConfirmAccount />} />
 
         {/* Admin Dashboard Protected Layout */}
         <Route path="/" element={<DashboardLayout />}>

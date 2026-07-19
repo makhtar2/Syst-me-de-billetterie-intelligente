@@ -22,7 +22,7 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
 
   if (!isOpen || !user) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationError = validateUserForm({ nom, prenom, telephone }, { requireEmail: false });
@@ -32,7 +32,11 @@ function EditUserModal({ isOpen, user, onClose, onSave }) {
     }
 
     setError(null);
-    onSave(user.id, { nom, prenom, telephone, role });
+    try {
+      await onSave(user.id, { nom, prenom, telephone, role });
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
