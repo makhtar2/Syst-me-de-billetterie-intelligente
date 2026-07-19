@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { getSouscriptionById, getHistorique, setSouscriptionStatut, renouvelerSouscription } from '../services/apiAbonnements';
 
@@ -234,6 +235,39 @@ function AbonnementDetail() {
           </div>
         </div>
       </section>
+
+      {abonnement.formule.type === 'TICKET_SIMPLE' && (
+        <section className="table-card" style={{ padding: '2rem', textAlign: 'center' }}>
+          <h3 className="stats-card-title" style={{ marginBottom: '1rem' }}>Billet QR Code</h3>
+          {abonnement.statut === 'ACTIF' ? (
+            <>
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '1rem',
+                  background: '#fff',
+                  borderRadius: '1rem',
+                  border: '1px solid #DBEAFE',
+                }}
+              >
+                <QRCodeSVG
+                  value={JSON.stringify({ type: 'TICKET_SIMPLE', abonnementId: abonnement.id })}
+                  size={180}
+                />
+              </div>
+              <p className="user-email-text" style={{ marginTop: '1rem' }}>
+                Code unique à présenter à la validation — à usage unique, se désactive automatiquement après le voyage.
+              </p>
+            </>
+          ) : (
+            <p className="user-email-text">
+              {abonnement.statut === 'EPUISE'
+                ? 'Billet déjà utilisé.'
+                : `Billet indisponible (${STATUT_LABELS[abonnement.statut] || abonnement.statut}).`}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="table-card">
         <div className="table-responsive">
