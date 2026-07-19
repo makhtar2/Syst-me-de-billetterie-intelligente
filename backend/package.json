@@ -10,7 +10,8 @@
     "seed:admin": "node src/seed/seedAdmin.js",
     "test": "node --test \"tests/**/*.test.js\"",
     "test:unitaires": "node --test \"tests/unitaires/*.test.js\"",
-    "test:api": "node --test \"tests/api/*.test.js\""
+    "test:api": "node --test \"tests/api/*.test.js\"",
+    "fix:telephones": "node src/seed/dedoublonnerTelephones.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
