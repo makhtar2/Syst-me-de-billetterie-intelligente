@@ -163,6 +163,3 @@ Démarre l'API Express (port 5050) et le serveur de développement React (port 5
 - [docs/TP1-service-utilisateurs.md](docs/TP1-service-utilisateurs.md) — livrable du TP : fonctionnalités critiques, plan de tests, tableau de synthèse, scénario fonctionnel
 - [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md) — installation, commandes de test, parcours de démonstration
 - [docs/presentation/tp1-service-utilisateurs.md](docs/presentation/tp1-service-utilisateurs.md) — support de présentation (Marp) ; export PDF dans [docs/pdf/TP1-Service-Utilisateurs-presentation.pdf](docs/pdf/TP1-Service-Utilisateurs-presentation.pdf)
-
-
-maintenant voici la partie suivantes (service abonnement), en haut c'est la partie (Service Utilisateurs) qu'on a deja fait , maintenant on attaque la partie service abonnement , vue qu'on est deux il faut d'abord cree la partitution des taches (moi cote frond et lui back),un il faut creer un fiche tres claire ou tu departage les taches de chacun , tout ce qu'on doit respecter pour chacun pour que chacun fait correctement sont travail sans conflit , je veux un tres bon document dont si le nous les deux on le respect, on va tout faire et sans conflit
