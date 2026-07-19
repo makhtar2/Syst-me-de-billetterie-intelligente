@@ -11,7 +11,7 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationError = validateUserForm({ nom, prenom, email, telephone });
@@ -21,14 +21,18 @@ function CreateUserModal({ isOpen, onClose, onCreate }) {
     }
 
     setError(null);
-    onCreate({ nom, prenom, email, telephone, role });
+    try {
+      await onCreate({ nom, prenom, email, telephone, role });
 
-    // Reset Form
-    setNom('');
-    setPrenom('');
-    setEmail('');
-    setTelephone('');
-    setRole('Client');
+      // Reset Form — seulement si la création a réussi
+      setNom('');
+      setPrenom('');
+      setEmail('');
+      setTelephone('');
+      setRole('Client');
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

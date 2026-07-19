@@ -50,7 +50,9 @@ async function request(path, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.message || 'Erreur serveur');
+    const error = new Error(data.message || 'Erreur serveur');
+    error.status = res.status;
+    throw error;
   }
   return data;
 }
@@ -60,6 +62,18 @@ export const api = {
     request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
   logout: () => request('/auth/logout', { method: 'POST' }),
+
+  // --- Confirmation de compte par lien (public, pas de session) ---
+  verifyConfirmationToken: (token) => request(`/auth/confirmation/${token}`),
+
+  confirmAccount: (token, motDePasse) =>
+    request(`/auth/confirmation/${token}`, {
+      method: 'POST',
+      body: JSON.stringify({ motDePasse }),
+    }),
+
+  resendConfirmationLink: (userId) =>
+    request(`/admin/users/${userId}/confirmation/renvoyer`, { method: 'POST' }),
 
   getUsers: (params = {}) => {
     const query = new URLSearchParams(params).toString();

@@ -29,6 +29,9 @@ function UserManagement() {
   const [csvSuccessMessage, setCsvSuccessMessage] = useState('');
   const [csvErrors, setCsvErrors] = useState([]);
 
+  // Renvoi du lien de confirmation : message temporaire, pas de banner permanent
+  const [resendMessage, setResendMessage] = useState(null);
+
   // SEO updates
   useEffect(() => {
     document.title = "Gestion des Utilisateurs - Système de Billetterie";
@@ -190,26 +193,33 @@ function UserManagement() {
     }
   };
 
-  // Create User Handler
-  const handleCreateUser = async (userData) => {
+  // Renvoie le lien de confirmation à un compte en attente (Actif, mot de
+  // passe temporaire pas encore remplacé) : régénère le lien et le mot de
+  // passe temporaire, invalidant l'ancien e-mail.
+  const handleResendConfirmation = async (id) => {
     try {
-      await api.createUser(userData);
-      fetchUsers();
-      setIsCreateModalOpen(false);
+      const data = await api.resendConfirmationLink(id);
+      setResendMessage({ type: 'success', text: data.message });
     } catch (err) {
-      console.error("Échec création utilisateur via API", err);
+      setResendMessage({ type: 'error', text: err.message });
+    } finally {
+      setTimeout(() => setResendMessage(null), 4000);
     }
   };
 
-  // Edit User Handler
+  // Create User Handler — les erreurs (ex: email ou téléphone déjà utilisé)
+  // remontent jusqu'à la modale, qui les affiche et reste ouverte.
+  const handleCreateUser = async (userData) => {
+    await api.createUser(userData);
+    fetchUsers();
+    setIsCreateModalOpen(false);
+  };
+
+  // Edit User Handler — même principe.
   const handleUpdateUser = async (id, userData) => {
-    try {
-      await api.updateUser(id, userData);
-      fetchUsers();
-      setEditingUser(null);
-    } catch (err) {
-      console.error("Échec de la mise à jour via API", err);
-    }
+    await api.updateUser(id, userData);
+    fetchUsers();
+    setEditingUser(null);
   };
 
   // CSV Import Handler
@@ -248,6 +258,18 @@ function UserManagement() {
             <div>
               <div className="offline-title">Mode Démo Local Actif</div>
               <div className="offline-text">Le serveur API backend n'est pas démarré. La base de données est indisponible.</div>
+            </div>
+          </div>
+        )}
+
+        {resendMessage && (
+          <div className="offline-notice">
+            <span className="material-symbols-outlined offline-icon">
+              {resendMessage.type === 'success' ? 'mark_email_read' : 'error'}
+            </span>
+            <div>
+              <div className="offline-title">{resendMessage.type === 'success' ? 'Lien renvoyé' : 'Échec du renvoi'}</div>
+              <div className="offline-text">{resendMessage.text}</div>
             </div>
           </div>
         )}
@@ -429,6 +451,17 @@ function UserManagement() {
                               </button>
                             ) : (
                               <>
+                                {user.status === 'Actif' && user.mustChangePassword && (
+                                  <button
+                                    className="icon-btn"
+                                    onClick={() => handleResendConfirmation(user.id)}
+                                    title="Renvoyer le lien de confirmation"
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#1d4ed8' }}>
+                                      forward_to_inbox
+                                    </span>
+                                  </button>
+                                )}
                                 <button
                                   className="icon-btn"
                                   onClick={() => setEditingUser(user)}

@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, setAuth } from '../services/api';
 import { validateLoginForm } from '../utils/validators';
 import './Login.css';
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Message affiché après une redirection (ex: confirmation de compte réussie)
+  const [infoMessage, setInfoMessage] = useState(location.state?.message || '');
   
   // Track input focus states for premium Figma-like active rings
   const [isEmailFocused, setIsEmailFocused] = useState(false);
@@ -34,6 +37,7 @@ function Login() {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    setInfoMessage('');
 
     const validationError = validateLoginForm({ email, password });
     if (validationError) {
@@ -81,6 +85,15 @@ function Login() {
         </div>
 
         {/* Action Alerts */}
+        {infoMessage && !error && (
+          <div className="login-success-alert">
+            <span className="material-symbols-outlined login-alert-icon">
+              check_circle
+            </span>
+            <span className="login-alert-text">{infoMessage}</span>
+          </div>
+        )}
+
         {error && (
           <div id="login-error" className="login-error-alert">
             <span className="material-symbols-outlined login-alert-icon">
