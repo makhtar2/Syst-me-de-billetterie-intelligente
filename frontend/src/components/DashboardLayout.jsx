@@ -3,6 +3,12 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getStoredUser, clearAuth, api, photoUrl } from '../services/api';
 import '../styles/dashboard.css';
 
+// Pages de gestion, réservées aux administrateurs (« Seul un administrateur
+// peut gérer les comptes » — et, par extension, les formules/abonnements).
+// Un agent ou un client authentifié n'a accès qu'à son propre profil.
+const ADMIN_ONLY_PREFIXES = ['/users', '/formules', '/abonnements', '/stats'];
+const isAdminOnlyPath = (path) => ADMIN_ONLY_PREFIXES.some((prefix) => path.startsWith(prefix));
+
 function DashboardLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
@@ -21,8 +27,19 @@ function DashboardLayout() {
     // d'autre n'est accessible tant que ce n'est pas fait.
     if (storedUser.mustChangePassword) {
       navigate('/change-password', { replace: true });
+      return;
+    }
+
+    if (storedUser.role !== 'Administrateur' && isAdminOnlyPath(currentPath)) {
+      navigate('/profile', { replace: true });
     }
   }, [navigate, currentPath]);
+
+  const isAdmin = user?.role === 'Administrateur';
+  // Tant que le rôle n'a pas encore tranché (premier rendu) ou que la
+  // redirection est en cours, ne jamais laisser apparaître une page
+  // réservée : évite le flash de contenu admin pour un compte non autorisé.
+  const blockedForRole = !user || (user.role !== 'Administrateur' && isAdminOnlyPath(currentPath));
 
   const handleLogout = async () => {
     try {
@@ -56,38 +73,42 @@ function DashboardLayout() {
         {/* Centralized Navigation Tabs for Admin Area */}
         <div className="nav-right-area">
           <nav className="nav-links">
-            <Link
-              to="/users"
-              title="Utilisateurs"
-              className={`nav-link-item ${currentPath === '/users' ? 'active' : ''}`}
-            >
-              <span className="material-symbols-outlined">group</span>
-              <span className="nav-link-text">Utilisateurs</span>
-            </Link>
-            <Link
-              to="/formules"
-              title="Formules"
-              className={`nav-link-item ${currentPath === '/formules' ? 'active' : ''}`}
-            >
-              <span className="material-symbols-outlined">confirmation_number</span>
-              <span className="nav-link-text">Formules</span>
-            </Link>
-            <Link
-              to="/abonnements"
-              title="Abonnements"
-              className={`nav-link-item ${currentPath.startsWith('/abonnements') ? 'active' : ''}`}
-            >
-              <span className="material-symbols-outlined">card_membership</span>
-              <span className="nav-link-text">Abonnements</span>
-            </Link>
-            <Link
-              to="/stats"
-              title="Tableau de bord"
-              className={`nav-link-item ${currentPath === '/stats' ? 'active' : ''}`}
-            >
-              <span className="material-symbols-outlined">bar_chart</span>
-              <span className="nav-link-text">Tableau de bord</span>
-            </Link>
+            {isAdmin && (
+              <>
+                <Link
+                  to="/users"
+                  title="Utilisateurs"
+                  className={`nav-link-item ${currentPath === '/users' ? 'active' : ''}`}
+                >
+                  <span className="material-symbols-outlined">group</span>
+                  <span className="nav-link-text">Utilisateurs</span>
+                </Link>
+                <Link
+                  to="/formules"
+                  title="Formules"
+                  className={`nav-link-item ${currentPath === '/formules' ? 'active' : ''}`}
+                >
+                  <span className="material-symbols-outlined">confirmation_number</span>
+                  <span className="nav-link-text">Formules</span>
+                </Link>
+                <Link
+                  to="/abonnements"
+                  title="Abonnements"
+                  className={`nav-link-item ${currentPath.startsWith('/abonnements') ? 'active' : ''}`}
+                >
+                  <span className="material-symbols-outlined">card_membership</span>
+                  <span className="nav-link-text">Abonnements</span>
+                </Link>
+                <Link
+                  to="/stats"
+                  title="Tableau de bord"
+                  className={`nav-link-item ${currentPath === '/stats' ? 'active' : ''}`}
+                >
+                  <span className="material-symbols-outlined">bar_chart</span>
+                  <span className="nav-link-text">Tableau de bord</span>
+                </Link>
+              </>
+            )}
             <Link
               to="/profile"
               title="Mon profil"
@@ -125,8 +146,10 @@ function DashboardLayout() {
         </div>
       </header>
 
-      {/* Render children pages */}
-      <Outlet />
+      {/* Render children pages — jamais avant d'avoir vérifié que le rôle
+          autorise la page demandée, pour ne pas laisser apparaître même
+          brièvement un écran de gestion à un compte non administrateur. */}
+      {!blockedForRole && <Outlet />}
     </div>
   );
 }
