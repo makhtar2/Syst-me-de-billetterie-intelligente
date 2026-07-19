@@ -180,15 +180,3 @@ Pour l'interface utilisateur, nous utiliserons un layout adaptatif moderne avec 
 * **`AdminDashboard.jsx`** : Vue d'accueil affichant les indicateurs statistiques sous forme de grilles et de compteurs.
 * **`UserManagement.jsx`** : Espace principal pour gérer (filtrer, rechercher, actions groupées) les comptes.
 * **`ProfileSettings.jsx`** : Page personnelle de l'administrateur permettant de modifier sa photo, ses infos et changer son mot de passe.
-
----
-
-## 6. Répartition suggérée des tâches (Méthode Agile / Trello)
-
-Si vous travaillez à plusieurs, voici comment séparer le travail pour cette première partie :
-
-| Développeur A (Backend) | Développeur B (Backend) | Développeur C (Frontend) | Développeur D (Frontend) |
-| :--- | :--- | :--- | :--- |
-| Configurer le modèle `User` et mettre en place l'Auth JWT (`login`, `logout`, middleware `auth`). | Configurer `nodemailer` et la logique de génération du mot de passe temporaire de 8 caractères. | Créer l'interface de connexion (`Login.jsx`) et l'intégration des tokens JWT (Context/Redux). | Créer le layout principal du Dashboard avec la Sidebar et les KPI statistiques (`AdminDashboard.jsx`). |
-| Créer le CRUD utilisateur individuel et le moteur de recherche et filtrage avancé. | Développer l'importation de fichiers CSV avec `multer` et `csv-parser` et gérer les doublons. | Créer la vue de gestion des utilisateurs (`UserManagement.jsx`) avec filtrage et recherche. | Intégrer les actions groupées (checkboxes) et l'importation de fichiers CSV en drag-and-drop. |
-| Sécuriser les routes de profil et implémenter la modification de mot de passe. | Gérer le téléversement de la photo de profil (ex. stockage local ou Cloudinary). | Créer la page de gestion de profil (`ProfileSettings.jsx`) avec modification de mot de passe et upload photo. | Réaliser la validation des formulaires et l'affichage des notifications Toast de succès/erreur. |
