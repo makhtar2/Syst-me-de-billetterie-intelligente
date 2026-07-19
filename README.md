@@ -1,10 +1,14 @@
-# Système de billetterie intelligente — Service Utilisateurs
+# Système de billetterie intelligente
 
-Application de gestion des comptes (administrateurs, agents, clients) pour un système de billetterie de transport. Ce dépôt couvre le Service Utilisateurs : authentification, profil, création et import de comptes, activation, statistiques. Les services Abonnements et Billetterie/QR Code ne sont pas implémentés.
+Application de gestion pour un système de billetterie de transport, composée de deux services indépendants :
+- **Service Utilisateurs** (`backend/`) : authentification, gestion des comptes (administrateurs, agents, clients), profil.
+- **Service Abonnements** (`service-abonnements/`) : catalogue de formules, souscription, consommation des voyages, cycle de vie d'un abonnement. Ne se connecte jamais à la base du Service Utilisateurs — seul le jeton JWT est partagé entre les deux.
+
+Le Service Billetterie/QR Code n'est pas développé à ce stade.
 
 ## Technologies
 
-Backend
+Backend — Service Utilisateurs
 - Node.js, Express
 - MongoDB, Mongoose
 - bcryptjs — hachage des mots de passe
@@ -14,14 +18,21 @@ Backend
 - nodemailer — envoi des e-mails d'activation
 - node:test, supertest — tests unitaires et API
 
+Backend — Service Abonnements
+- Node.js, Express
+- MySQL, Sequelize
+- jsonwebtoken — vérification des jetons émis par le Service Utilisateurs
+- node:test, supertest — tests unitaires et API
+
 Frontend
 - React 19, Vite
 - React Router
 - Jest, babel-jest — tests unitaires
 - oxlint — analyse statique
 
-Base de données
-- MongoDB
+Bases de données
+- MongoDB (Service Utilisateurs)
+- MySQL (Service Abonnements)
 
 ## Fonctionnalités
 
@@ -51,6 +62,32 @@ Tableau de bord
 Validation des saisies
 - Format de l'adresse e-mail
 - Format du numéro de téléphone : 9 chiffres, indicatif +221 optionnel
+
+### Service Abonnements
+
+Formules
+- Création, consultation, modification, activation/désactivation
+- Tarif, durée de validité et nombre de voyages figés dès qu'une formule a au moins un abonnement ; nom et description restent modifiables
+- Trois types : ticket simple (1 voyage), limité (nombre de voyages fixé), illimité
+
+Souscriptions
+- Souscription d'un client à une formule active, avec calcul automatique de la date d'expiration et du solde de voyages
+- Un seul abonnement limité ou illimité en cours par client ; les tickets simples restent cumulables
+- Recherche et filtres : statut, type, client, expiration proche
+- Fiche détail avec solde, dates et historique des voyages
+
+Cycle de vie
+- Suspension et réactivation
+- Résiliation définitive
+- Renouvellement (sauf pour un ticket simple)
+
+Consommation
+- Décompte d'un voyage à la validation, avec le motif exact en cas de refus (expiré, épuisé, suspendu, résilié)
+- Un scan rejoué ne décompte jamais deux fois le même voyage
+- Vérification de la validité d'un titre, destinée au futur Service Billetterie
+
+Tableau de bord
+- Total, répartition par statut et par type, voyages consommés, revenu total, abonnements expirant sous 7 jours
 
 ## Structure du code
 
@@ -84,6 +121,35 @@ tests/
   api/                routes testées via supertest : authentification, CRUD, import CSV, activation
 ```
 
+### service-abonnements/
+
+```
+src/
+  app.js                     application Express (sans écoute réseau, utilisée aussi par les tests)
+  server.js                  point d'entrée, démarre le serveur et la synchronisation MySQL
+  config/database.js         connexion Sequelize à MySQL
+  models/
+    Formule.js                catalogue des formules
+    Abonnement.js              souscriptions d'un client
+    Consommation.js            historique des voyages validés
+  middleware/auth.js          vérifie les jetons émis par le Service Utilisateurs (même JWT_SECRET)
+  controllers/
+    formuleController.js
+    souscriptionController.js
+    consommationController.js
+    validiteController.js
+    statistiquesController.js
+  routes/
+    formuleRoutes.js           /api/abonnements/formules
+    souscriptionRoutes.js      /api/abonnements/souscriptions
+    validiteRoutes.js          /api/abonnements/validite
+    statistiquesRoutes.js      /api/abonnements/dashboard
+  seed/                       formules de départ
+tests/
+  unitaires/                  fonctions pures : solde de voyages, statut effectif, validation des modèles
+  api/                        routes testées via supertest : formules, souscriptions, consommation, tableau de bord, auth
+```
+
 ### frontend/
 
 ```
@@ -95,14 +161,24 @@ src/
     EditUserModal.jsx          modification d'un utilisateur
     ImportCsvModal.jsx         import CSV, affichage des erreurs
     PasswordInput.jsx          champ mot de passe avec bascule visible/masqué
-    StatCard.jsx                carte de statistiques du tableau de bord
+    StatCard.jsx                carte de statistiques du tableau de bord (Service Utilisateurs)
+    FormuleModal.jsx            création/édition d'une formule
+    SouscriptionModal.jsx       souscription d'un client à une formule
   pages/
     Login.jsx                   connexion
     ForcePasswordChange.jsx     changement de mot de passe obligatoire
     ProfileSettings.jsx         profil du compte connecté
     UserManagement.jsx          gestion des comptes : liste, statistiques, actions
-  services/api.js               appels HTTP vers l'API, gestion du jeton JWT
-  utils/validators.js           règles de validation : e-mail, téléphone, mot de passe
+    FormulesManagement.jsx      catalogue des formules
+    AbonnementsManagement.jsx   liste des abonnements, souscription
+    AbonnementDetail.jsx        fiche détail : solde, historique, cycle de vie
+    AbonnementStats.jsx         tableau de bord des abonnements
+  services/
+    api.js                      appels HTTP vers le Service Utilisateurs, gestion du jeton JWT
+    apiAbonnements.js           client du Service Abonnements ; simulé en mémoire tant que le backend n'est pas branché (voir docs/service-abonnements.md §6)
+  utils/
+    validators.js                règles de validation Service Utilisateurs : e-mail, téléphone, mot de passe
+    validatorsAbonnements.js     règles de validation Service Abonnements : formule, souscription
 ```
 
 ## API
@@ -125,15 +201,40 @@ src/
 | PATCH | /api/admin/users/bulk-status | administrateur | action groupée |
 | POST | /api/admin/users/import | administrateur | import CSV |
 
+### Service Abonnements (port 5060)
+
+| Méthode | Route | Accès | Description |
+|---|---|---|---|
+| POST | /api/abonnements/formules | administrateur | création d'une formule |
+| GET | /api/abonnements/formules | administrateur | catalogue, filtres type/actif |
+| GET | /api/abonnements/formules/:id | administrateur | fiche d'une formule |
+| PUT | /api/abonnements/formules/:id | administrateur | modification (figée si déjà souscrite) |
+| PATCH | /api/abonnements/formules/:id/actif | administrateur | activation/désactivation |
+| POST | /api/abonnements/souscriptions | administrateur | souscription d'un client |
+| GET | /api/abonnements/souscriptions | administrateur | liste, filtres statut/type/client/expiration |
+| GET | /api/abonnements/souscriptions/:id | administrateur | fiche d'un abonnement |
+| PATCH | /api/abonnements/souscriptions/:id/statut | administrateur | suspendre / réactiver / résilier |
+| POST | /api/abonnements/souscriptions/:id/renouveler | administrateur | renouvellement |
+| POST | /api/abonnements/souscriptions/:id/consommer | administrateur, agent | validation d'un voyage |
+| GET | /api/abonnements/souscriptions/:id/historique | administrateur | historique des voyages |
+| GET | /api/abonnements/validite/:utilisateurId | administrateur, agent | droit à voyager (futur Service Billetterie) |
+| GET | /api/abonnements/dashboard/stats | administrateur | statistiques |
+
 ## Tests
 
-Backend : 59 tests (14 unitaires, 45 API), `node --test`.
+Backend Service Utilisateurs : 59 tests (14 unitaires, 45 API), `node --test`.
 ```bash
 cd backend
 npm test
 ```
 
-Frontend : 22 tests unitaires, Jest.
+Backend Service Abonnements : 75 tests (24 unitaires, 51 API), `node --test`.
+```bash
+cd service-abonnements
+npm test
+```
+
+Frontend : 73 tests unitaires (22 Service Utilisateurs, 51 Service Abonnements), Jest.
 ```bash
 cd frontend
 npm test
@@ -141,7 +242,7 @@ npm test
 
 ## Installation et démarrage
 
-Prérequis : Node.js 18 ou plus, MongoDB en local.
+Prérequis : Node.js 18 ou plus, MongoDB en local (MySQL uniquement pour faire tourner le vrai Service Abonnements, voir [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md)).
 
 ```bash
 npm run install-all
@@ -153,13 +254,15 @@ Créer `backend/.env` sur le modèle de `backend/.env.example`.
 npm run dev
 ```
 
-Démarre l'API Express (port 5050) et le serveur de développement React (port 5173).
+Démarre l'API Express du Service Utilisateurs (port 5050) et le serveur de développement React (port 5173). Le frontend fonctionne sans le Service Abonnements réel : il tourne contre un client API simulé tant que celui-ci n'est pas branché.
 
 ## Documentation
 
-- **[PLAN-SERVICE-ABONNEMENTS.md](PLAN-SERVICE-ABONNEMENTS.md) — 🚧 prochaine étape : répartition des tâches, contrat d'API et règles de travail à valider par les deux développeurs**
+- [PLAN-SERVICE-ABONNEMENTS.md](PLAN-SERVICE-ABONNEMENTS.md) — contrat d'API, répartition des tâches et règles de travail du Service Abonnements
 - [CONTRIBUTING.md](CONTRIBUTING.md) — gestion des branches, commits, normes de codage
-- [docs/plan_service_utilisateurs.md](docs/plan_service_utilisateurs.md) — plan d'implémentation initial
-- [docs/TP1-service-utilisateurs.md](docs/TP1-service-utilisateurs.md) — livrable du TP : fonctionnalités critiques, plan de tests, tableau de synthèse, scénario fonctionnel
-- [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md) — installation, commandes de test, parcours de démonstration
-- [docs/presentation/tp1-service-utilisateurs.md](docs/presentation/tp1-service-utilisateurs.md) — support de présentation (Marp) ; export PDF dans [docs/pdf/TP1-Service-Utilisateurs-presentation.pdf](docs/pdf/TP1-Service-Utilisateurs-presentation.pdf)
+- [docs/plan_service_utilisateurs.md](docs/plan_service_utilisateurs.md) — plan d'implémentation initial du Service Utilisateurs
+- [docs/TP1-service-utilisateurs.md](docs/TP1-service-utilisateurs.md) — livrable Service Utilisateurs : fonctionnalités critiques, plan de tests, tableau de synthèse, scénario fonctionnel
+- [docs/service-abonnements.md](docs/service-abonnements.md) — livrable Service Abonnements : mêmes rubriques
+- [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md) — installation, commandes de test, parcours de démonstration des deux services
+- [docs/presentation/tp1-service-utilisateurs.md](docs/presentation/tp1-service-utilisateurs.md) — support de présentation Service Utilisateurs (Marp) ; export PDF dans [docs/pdf/TP1-Service-Utilisateurs-presentation.pdf](docs/pdf/TP1-Service-Utilisateurs-presentation.pdf)
+- [docs/presentation/service-abonnements.md](docs/presentation/service-abonnements.md) — support de présentation Service Abonnements (Marp) ; export PDF dans [docs/pdf/Service-Abonnements-presentation.pdf](docs/pdf/Service-Abonnements-presentation.pdf)

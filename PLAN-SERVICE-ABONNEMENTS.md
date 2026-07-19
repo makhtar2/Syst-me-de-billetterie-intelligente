@@ -374,9 +374,9 @@ maintenant, et plusieurs heures une fois les deux côtés écrits.
 
 ## 11. Points encore ouverts
 
-- [ ] **MySQL** : version, port, identifiants — à définir et documenter dans `.env.example`
-- [ ] Un abonnement **actif** empêche-t-il d'en souscrire un second ? *(proposition : oui pour les LIMITE et ILLIMITE, non pour les tickets simples)*
-- [ ] Le passage automatique à `EXPIRE` : calculé à la lecture, ou via une tâche planifiée ? *(proposition : à la lecture, plus simple et suffisant ici)*
-- [ ] Les tarifs sont-ils modifiables sur une formule déjà souscrite ? *(proposition : non — on crée une nouvelle formule)*
+- [x] **MySQL** : local, port 3306, identifiants dans `service-abonnements/.env` (non versionné)
+- [x] Un abonnement **actif** empêche-t-il d'en souscrire un second ? Tranché : oui pour LIMITE et ILLIMITE (409), non pour les tickets simples, qui restent cumulables.
+- [x] Le passage automatique à `EXPIRE` : calculé à la lecture, ou via une tâche planifiée ? Tranché : à la lecture, comme proposé.
+- [x] Les tarifs sont-ils modifiables sur une formule déjà souscrite ? Tranché différemment de la proposition initiale : pas de nouvelle formule créée — le tarif, la durée et le nombre de voyages sont figés (409) sur la formule existante, mais le nom et la description restent modifiables.
 
 *Chaque point tranché est reporté dans ce document, daté, et signalé à l'autre développeur.*
