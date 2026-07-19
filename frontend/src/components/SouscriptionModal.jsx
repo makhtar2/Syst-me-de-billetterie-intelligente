@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { getFormules } from '../services/apiAbonnements';
 import { validateSouscriptionForm } from '../utils/validatorsAbonnements';
@@ -70,7 +71,10 @@ function SouscriptionModal({ isOpen, onClose, onSave }) {
               ))}
             </select>
             {clients.length === 0 && (
-              <p className="form-hint">Aucun client actif trouvé.</p>
+              <p className="form-hint">
+                Aucun client actif trouvé. Un client doit être créé puis activé avant de pouvoir
+                souscrire — depuis <Link to="/users" onClick={onClose}>Gestion des Comptes</Link>.
+              </p>
             )}
           </div>
 
