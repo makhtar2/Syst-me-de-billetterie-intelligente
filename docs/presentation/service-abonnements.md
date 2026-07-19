@@ -117,7 +117,7 @@ Démarré une fois le Service Utilisateurs terminé, avec l'accord du professeur
 Livrables :
 - fonctionnalités critiques, plan de tests, tableau de synthèse ;
 - microservice indépendant avec sa propre base MySQL ;
-- client API simulé côté front, pour ne pas attendre le backend ;
+- front branché sur le vrai backend, vérifié en conditions réelles ;
 - scénario fonctionnel complet, branches dédiées, PR documentées.
 
 ---
@@ -127,7 +127,7 @@ Livrables :
 # Qui gère quoi
 
 - **Back (Elhadj Fallou)** : microservice `service-abonnements/` — modèles Sequelize, contrôleurs, vérification des jetons du Service Utilisateurs, 75 tests.
-- **Front (Makhtar)** : client API simulé respectant le contrat au champ près, pages Formules et Abonnements, cycle de vie, tableau de bord.
+- **Front (Makhtar)** : pages Formules et Abonnements, cycle de vie, tableau de bord, QR Code sur les tickets simples — d'abord contre un client API simulé respectant le contrat au champ près, puis branché sur le vrai backend une fois celui-ci prêt.
 
 Zones étanches : le back ne touche jamais à `frontend/src/`, le front ne touche jamais à `service-abonnements/src/`.
 
@@ -162,13 +162,13 @@ Zones étanches : le back ne touche jamais à `frontend/src/`, le front ne touch
 | | Back | Front |
 |---|---|---|
 | Outil | `node:test` + `supertest` | Jest |
-| Cible | routes, contrôleurs, modèles | client API simulé + règles de validation |
+| Cible | routes, contrôleurs, modèles | règles de validation (le client API fait de vrais appels HTTP, testé côté serveur) |
 | Base | MySQL dédiée aux tests | — |
 | Auth | jeton signé avec le `JWT_SECRET` du Service Utilisateurs, jamais connecté à Mongo | — |
 
 ```bash
 npm test --prefix service-abonnements   # 75 tests
-npm test --prefix frontend              # 73 tests (51 sur ce périmètre)
+npm test --prefix frontend              # 34 tests (12 sur ce périmètre)
 ```
 
 ---
@@ -191,14 +191,13 @@ npm test --prefix frontend              # 73 tests (51 sur ce périmètre)
 
 ###### 4 · Tableau de synthèse
 
-# Et côté front : 51 tests sur ce périmètre
+# Et côté front : 12 tests sur ce périmètre
 
 | Fichier | Cas couverts | Nb |
 |---|---|---|
 | `validatorsAbonnements.test.js` | Formulaire de formule et de souscription | 12 |
-| `apiAbonnements.test.js` | Contrat simulé complet : formules, souscriptions, cycle de vie, consommation | 39 |
 
-Le client API simulé respecte les mêmes codes d'erreur et les mêmes règles métier que le vrai backend — vérifié en confrontant les deux suites de tests, pas seulement en relisant le code.
+Le client API (`apiAbonnements.js`) n'est pas testé unitairement — comme celui du Service Utilisateurs, ce sont de vrais appels HTTP. Sa conformité au contrat a été vérifiée autrement : comparaison avec la suite de tests du backend pendant qu'il était encore simulé, puis cycle complet rejoué en conditions réelles après le branchement.
 
 ---
 
@@ -245,7 +244,7 @@ Les sept corrigés dans la même PR, avec 21 tests supplémentaires pour ne pas 
 
 # Une PR par sujet, comme au premier TP
 
-7 Pull Requests sur ce périmètre : le contrat d'API, le client simulé, le microservice back, les pages Formules, les pages Abonnements, le cycle de vie et tableau de bord, puis la mise en conformité du simulateur.
+Une douzaine de Pull Requests sur ce périmètre : le contrat d'API, le client simulé, le microservice back, les pages Formules, les pages Abonnements, le cycle de vie et tableau de bord, la mise en conformité du simulateur, le QR Code, et enfin le branchement sur le vrai backend.
 
 - branches dédiées (`feature/abo-*`, `fix/abo-*`), supprimées après fusion
 - PR avec résumé + plan de test avant de demander la relecture

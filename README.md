@@ -175,7 +175,7 @@ src/
     AbonnementStats.jsx         tableau de bord des abonnements
   services/
     api.js                      appels HTTP vers le Service Utilisateurs, gestion du jeton JWT
-    apiAbonnements.js           client du Service Abonnements ; simulé en mémoire tant que le backend n'est pas branché (voir docs/service-abonnements.md §6)
+    apiAbonnements.js           client du Service Abonnements (appels HTTP réels vers service-abonnements, port 5060)
   utils/
     validators.js                règles de validation Service Utilisateurs : e-mail, téléphone, mot de passe
     validatorsAbonnements.js     règles de validation Service Abonnements : formule, souscription
@@ -222,7 +222,7 @@ src/
 
 ## Tests
 
-Backend Service Utilisateurs : 59 tests (14 unitaires, 45 API), `node --test`.
+Backend Service Utilisateurs : 80 tests (14 unitaires, 66 API), `node --test`.
 ```bash
 cd backend
 npm test
@@ -234,7 +234,7 @@ cd service-abonnements
 npm test
 ```
 
-Frontend : 73 tests unitaires (22 Service Utilisateurs, 51 Service Abonnements), Jest.
+Frontend : 34 tests unitaires (22 Service Utilisateurs, 12 Service Abonnements), Jest. Les deux clients API (`services/api.js`, `services/apiAbonnements.js`) ne sont pas testés unitairement : ce sont de vrais clients HTTP, leur logique est couverte côté serveur.
 ```bash
 cd frontend
 npm test
@@ -242,19 +242,19 @@ npm test
 
 ## Installation et démarrage
 
-Prérequis : Node.js 18 ou plus, MongoDB en local (MySQL uniquement pour faire tourner le vrai Service Abonnements, voir [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md)).
+Prérequis : Node.js 18 ou plus, MongoDB en local, MySQL en local (voir [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md)).
 
 ```bash
 npm run install-all
 ```
 
-Créer `backend/.env` sur le modèle de `backend/.env.example`.
+Créer `backend/.env` sur le modèle de `backend/.env.example`, et `service-abonnements/.env` sur le modèle de `service-abonnements/.env.example` (même `JWT_SECRET` des deux côtés).
 
 ```bash
 npm run dev
 ```
 
-Démarre l'API Express du Service Utilisateurs (port 5050) et le serveur de développement React (port 5173). Le frontend fonctionne sans le Service Abonnements réel : il tourne contre un client API simulé tant que celui-ci n'est pas branché.
+Démarre les trois services ensemble : l'API Express du Service Utilisateurs (port 5050), l'API Express du Service Abonnements (port 5060) et le serveur de développement React (port 5173).
 
 ## Documentation
 
