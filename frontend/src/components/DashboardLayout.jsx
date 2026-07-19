@@ -73,6 +73,14 @@ function DashboardLayout() {
               <span className="nav-link-text">Formules</span>
             </Link>
             <Link
+              to="/abonnements"
+              title="Abonnements"
+              className={`nav-link-item ${currentPath.startsWith('/abonnements') ? 'active' : ''}`}
+            >
+              <span className="material-symbols-outlined">card_membership</span>
+              <span className="nav-link-text">Abonnements</span>
+            </Link>
+            <Link
               to="/profile"
               title="Mon profil"
               className={`nav-link-item ${currentPath === '/profile' ? 'active' : ''}`}

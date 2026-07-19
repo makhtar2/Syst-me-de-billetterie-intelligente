@@ -4,6 +4,8 @@ import Login from './pages/Login.jsx';
 import ForcePasswordChange from './pages/ForcePasswordChange.jsx';
 import UserManagement from './pages/UserManagement.jsx';
 import FormulesManagement from './pages/FormulesManagement.jsx';
+import AbonnementsManagement from './pages/AbonnementsManagement.jsx';
+import AbonnementDetail from './pages/AbonnementDetail.jsx';
 import ProfileSettings from './pages/ProfileSettings.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
 
@@ -19,8 +21,10 @@ function App() {
           <Route index element={<Navigate to="/users" replace />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="formules" element={<FormulesManagement />} />
+          <Route path="abonnements" element={<AbonnementsManagement />} />
+          <Route path="abonnements/:id" element={<AbonnementDetail />} />
           <Route path="profile" element={<ProfileSettings />} />
-          <Route path="subscriptions" element={<Navigate to="/formules" replace />} />
+          <Route path="subscriptions" element={<Navigate to="/abonnements" replace />} />
         </Route>
 
         {/* Redirect any other path to /login for now */}
