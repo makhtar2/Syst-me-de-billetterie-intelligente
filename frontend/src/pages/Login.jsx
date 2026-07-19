@@ -102,7 +102,7 @@ function Login() {
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="login-form" noValidate>
           <div className="login-input-group">
-            <label htmlFor="login-email" className="form-label">Adresse email ou Identifiant</label>
+            <label htmlFor="login-email" className="form-label">Adresse email ou Identifiant<span className="required-mark">*</span></label>
             <div className={`login-input-wrapper ${isEmailFocused ? 'focused' : ''}`}>
               <span className="material-symbols-outlined login-input-icon">
                 alternate_email
@@ -124,7 +124,7 @@ function Login() {
 
           <div className="login-input-group">
             <div className="login-label-row">
-              <label htmlFor="login-password" className="form-label">Mot de passe</label>
+              <label htmlFor="login-password" className="form-label">Mot de passe<span className="required-mark">*</span></label>
               <a href="#forgot-password" className="login-forgot-link">Oublié ?</a>
             </div>
             <div className={`login-input-wrapper ${isPasswordFocused ? 'focused' : ''}`}>

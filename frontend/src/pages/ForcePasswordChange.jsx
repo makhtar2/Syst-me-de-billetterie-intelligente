@@ -105,7 +105,7 @@ function ForcePasswordChange() {
 
         <form onSubmit={handleSubmit} className="login-form" noValidate>
           <div className="login-input-group">
-            <label htmlFor="temp-password" className="form-label">Mot de passe temporaire</label>
+            <label htmlFor="temp-password" className="form-label">Mot de passe temporaire<span className="required-mark">*</span></label>
             <div className={`login-input-wrapper ${focusedField === 'old' ? 'focused' : ''}`}>
               <span className="material-symbols-outlined login-input-icon">lock</span>
               <input
@@ -134,7 +134,7 @@ function ForcePasswordChange() {
           </div>
 
           <div className="login-input-group">
-            <label htmlFor="new-password" className="form-label">Nouveau mot de passe</label>
+            <label htmlFor="new-password" className="form-label">Nouveau mot de passe<span className="required-mark">*</span></label>
             <div className={`login-input-wrapper ${focusedField === 'new' ? 'focused' : ''}`}>
               <span className="material-symbols-outlined login-input-icon">lock_reset</span>
               <input
@@ -164,7 +164,7 @@ function ForcePasswordChange() {
           </div>
 
           <div className="login-input-group">
-            <label htmlFor="confirm-password" className="form-label">Confirmer le nouveau mot de passe</label>
+            <label htmlFor="confirm-password" className="form-label">Confirmer le nouveau mot de passe<span className="required-mark">*</span></label>
             <div className={`login-input-wrapper ${focusedField === 'confirm' ? 'focused' : ''}`}>
               <span className="material-symbols-outlined login-input-icon">lock_reset</span>
               <input
