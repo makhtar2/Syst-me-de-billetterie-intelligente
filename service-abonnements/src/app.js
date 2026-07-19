@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import formuleRoutes from './routes/formuleRoutes.js';
+import souscriptionRoutes from './routes/souscriptionRoutes.js';
 
 // Application Express du Service Abonnements.
 // Volontairement séparée de server.js : aucune écoute réseau, aucune connexion
@@ -25,7 +26,10 @@ app.get('/api/abonnements/status', (_req, res) => {
 // Catalogue des formules (§4.1)
 app.use('/api/abonnements/formules', formuleRoutes);
 
-// Souscriptions, consommation et statistiques seront montées ici (tâches A5 à A8).
+// Souscriptions et cycle de vie (§4.2)
+app.use('/api/abonnements/souscriptions', souscriptionRoutes);
+
+// Consommation et statistiques seront montées ici (tâches A6 à A8).
 
 // Ressource inconnue
 app.use((req, res) => {
