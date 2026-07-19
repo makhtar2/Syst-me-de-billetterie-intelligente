@@ -21,3 +21,16 @@ export function validateFormuleForm({ nom, type, tarif, dureeValiditeJours, nomb
   }
   return null;
 }
+
+export function validateSouscriptionForm({ utilisateurId, formuleId, dateDebut }) {
+  if (!utilisateurId) {
+    return 'Le client est obligatoire.';
+  }
+  if (!formuleId) {
+    return 'La formule est obligatoire.';
+  }
+  if (!dateDebut) {
+    return 'La date de début est obligatoire.';
+  }
+  return null;
+}

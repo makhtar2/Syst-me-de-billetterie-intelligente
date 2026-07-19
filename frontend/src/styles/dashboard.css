@@ -642,6 +642,12 @@ body {
   margin-left: 0.15rem;
 }
 
+.form-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0.2rem 0 0 0;
+}
+
 .form-input, .form-select {
   border-radius: 1rem;
   padding: 0.75rem 1rem;
