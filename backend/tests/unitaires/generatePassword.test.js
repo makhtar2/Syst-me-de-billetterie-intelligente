@@ -16,7 +16,6 @@ import { generateTempPassword } from '../../src/utils/generatePassword.js';
 
 describe('generateTempPassword', () => {
   test('génère un mot de passe de exactement 8 caractères', () => {
-    // Exigence explicite du cahier des charges :
     // « un mot de passe temporaire de 8 caractères est généré automatiquement »
     for (let i = 0; i < 50; i++) {
       assert.equal(generateTempPassword().length, 8);
