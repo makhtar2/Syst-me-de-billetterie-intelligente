@@ -73,6 +73,12 @@ let consommations = [];
 
 const findFormule = (id) => formules.find((f) => f.id === Number(id));
 
+const hasSouscription = (formuleId) => abonnements.some((a) => a.formule.id === Number(formuleId));
+
+const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+const STATUTS_CONNUS = ['ACTIF', 'SUSPENDU', 'EXPIRE', 'EPUISE', 'RESILIE'];
+
 const addDays = (isoDate, days) => {
   const d = new Date(`${isoDate}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -116,6 +122,12 @@ export async function createFormule({ nom, description, type, tarif, dureeValidi
   if (!['TICKET_SIMPLE', 'LIMITE', 'ILLIMITE'].includes(type)) {
     throw new ApiAbonnementsError('Type de formule invalide', 400);
   }
+  if (Number(tarif) < 0) {
+    throw new ApiAbonnementsError('Le tarif doit être positif', 400);
+  }
+  if (Number(dureeValiditeJours) <= 0) {
+    throw new ApiAbonnementsError('La durée de validité doit être supérieure à 0 jour', 400);
+  }
   const formule = {
     id: nextFormuleId++,
     nom,
@@ -147,9 +159,30 @@ export async function getFormuleById(id) {
   return delay({ formule });
 }
 
+// Une fois qu'une formule a au moins une souscription, ses conditions
+// financières (tarif, durée, nombre de voyages) sont figées : ça ne changerait
+// rien pour les clients déjà engagés. Seuls le nom et la description restent
+// modifiables. Renvoyer la valeur déjà en place (formulaire d'édition qui
+// soumet tout l'objet sans rien changer) n'est pas traité comme une tentative
+// de modification.
 export async function updateFormule(id, { nom, description, tarif, dureeValiditeJours, nombreVoyages }) {
   const formule = findFormule(id);
   if (!formule) throw new ApiAbonnementsError('Formule introuvable', 404);
+
+  const changeReellement = (valeur, actuelle) => valeur !== undefined && Number(valeur) !== Number(actuelle);
+
+  if (hasSouscription(id)) {
+    if (changeReellement(tarif, formule.tarif)) {
+      throw new ApiAbonnementsError('Le tarif ne peut plus être modifié : des clients ont déjà souscrit', 409);
+    }
+    if (changeReellement(dureeValiditeJours, formule.dureeValiditeJours)) {
+      throw new ApiAbonnementsError('La durée de validité ne peut plus être modifiée : des clients ont déjà souscrit', 409);
+    }
+    if (formule.type === 'LIMITE' && changeReellement(nombreVoyages, formule.nombreVoyages)) {
+      throw new ApiAbonnementsError('Le nombre de voyages ne peut plus être modifié : des clients ont déjà souscrit', 409);
+    }
+  }
+
   if (nom !== undefined) formule.nom = nom;
   if (description !== undefined) formule.description = description;
   if (tarif !== undefined) formule.tarif = tarif;
@@ -161,7 +194,10 @@ export async function updateFormule(id, { nom, description, tarif, dureeValidite
 export async function setFormuleActive(id, actif) {
   const formule = findFormule(id);
   if (!formule) throw new ApiAbonnementsError('Formule introuvable', 404);
-  formule.actif = Boolean(actif);
+  if (typeof actif !== 'boolean') {
+    throw new ApiAbonnementsError('La valeur actif doit être un booléen', 400);
+  }
+  formule.actif = actif;
   return delay({ formule });
 }
 
@@ -171,9 +207,30 @@ export async function createSouscription({ utilisateurId, formuleId, dateDebut }
   if (!utilisateurId || !formuleId || !dateDebut) {
     throw new ApiAbonnementsError('Champs obligatoires manquants (utilisateurId, formuleId, dateDebut)', 400);
   }
+  if (!DATE_ISO.test(dateDebut)) {
+    throw new ApiAbonnementsError('La date de début doit être au format AAAA-MM-JJ', 400);
+  }
   const formule = findFormule(formuleId);
-  if (!formule || !formule.actif) {
-    throw new ApiAbonnementsError('Formule introuvable ou inactive', 404);
+  if (!formule) {
+    throw new ApiAbonnementsError('Formule introuvable', 404);
+  }
+  if (!formule.actif) {
+    throw new ApiAbonnementsError('Cette formule a été retirée du catalogue', 409);
+  }
+
+  // Un client ne peut avoir qu'un seul abonnement Limité/Illimité en cours à
+  // la fois (il paie déjà pour un titre valide) ; les tickets simples restent
+  // cumulables, comme un carnet de tickets.
+  if (formule.type !== 'TICKET_SIMPLE') {
+    const dejaEnCours = abonnements.some(
+      (a) =>
+        a.utilisateurId === utilisateurId &&
+        a.formule.type !== 'TICKET_SIMPLE' &&
+        ['ACTIF', 'SUSPENDU', 'EPUISE'].includes(deriveStatut(a))
+    );
+    if (dejaEnCours) {
+      throw new ApiAbonnementsError('Ce client a déjà un abonnement en cours', 409);
+    }
   }
 
   const abo = {
@@ -192,7 +249,14 @@ export async function createSouscription({ utilisateurId, formuleId, dateDebut }
   return delay({ abonnement: serializeAbonnement(abo) });
 }
 
-export async function getSouscriptions({ utilisateurId, statut, type, recherche } = {}) {
+export async function getSouscriptions({ utilisateurId, statut, type, recherche, expireSous } = {}) {
+  if (statut !== undefined && !STATUTS_CONNUS.includes(statut)) {
+    throw new ApiAbonnementsError('Statut de filtre invalide', 400);
+  }
+  if (expireSous !== undefined && Number.isNaN(Number(expireSous))) {
+    throw new ApiAbonnementsError('expireSous doit être un nombre de jours', 400);
+  }
+
   let result = abonnements;
   if (utilisateurId) result = result.filter((a) => a.utilisateurId === utilisateurId);
   if (type) result = result.filter((a) => a.formule.type === type);
@@ -200,8 +264,14 @@ export async function getSouscriptions({ utilisateurId, statut, type, recherche 
     const q = recherche.toLowerCase();
     result = result.filter((a) => a.utilisateurId.toLowerCase().includes(q));
   }
+  // Les statuts EXPIRE/EPUISE ne sont jamais stockés tels quels : le filtre
+  // doit passer par le statut recalculé, pas par une colonne figée.
   let serialized = result.map(serializeAbonnement);
   if (statut) serialized = serialized.filter((a) => a.statut === statut);
+  if (expireSous !== undefined) {
+    const limite = addDays(today(), Number(expireSous));
+    serialized = serialized.filter((a) => a.statut === 'ACTIF' && a.dateExpiration <= limite);
+  }
   return delay(serialized);
 }
 
@@ -219,6 +289,11 @@ export async function setSouscriptionStatut(id, statut) {
   }
   const abo = findAbonnement(id);
   if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
+  // Une résiliation est définitive : la contourner permettrait de réactiver
+  // un abonnement pour souscrire un deuxième en parallèle.
+  if (abo.statutManuel === 'RESILIE') {
+    throw new ApiAbonnementsError('Cet abonnement est résilié', 409);
+  }
   abo.statutManuel = statut === 'ACTIF' ? null : statut;
   return delay({ abonnement: serializeAbonnement(abo) });
 }
@@ -226,6 +301,12 @@ export async function setSouscriptionStatut(id, statut) {
 export async function renouvelerSouscription(id, dateDebut) {
   const abo = findAbonnement(id);
   if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
+  if (abo.formule.type === 'TICKET_SIMPLE') {
+    throw new ApiAbonnementsError('Un ticket simple ne se renouvelle pas, il se rachète', 409);
+  }
+  if (abo.statutManuel === 'RESILIE') {
+    throw new ApiAbonnementsError('Cet abonnement est résilié', 409);
+  }
   abo.dateDebut = dateDebut;
   abo.dateExpiration = addDays(dateDebut, abo.formule.dureeValiditeJours);
   abo.voyagesConsommes = 0;
@@ -237,8 +318,20 @@ export async function renouvelerSouscription(id, dateDebut) {
 // --- 4.3 Consommation et historique ---
 
 export async function consommerVoyage(id, validationId) {
+  if (!validationId) {
+    throw new ApiAbonnementsError('validationId obligatoire', 400);
+  }
   const abo = findAbonnement(id);
   if (!abo) throw new ApiAbonnementsError('Abonnement introuvable', 404);
+
+  // Un scan rejoué (double lecture du même QR Code, retry réseau…) ne doit
+  // jamais décompter deux fois le même voyage.
+  const dejaEnregistre = consommations.some(
+    (c) => c.abonnementId === abo.id && c.validationId === validationId
+  );
+  if (dejaEnregistre) {
+    throw new ApiAbonnementsError('Ce voyage a déjà été enregistré', 409);
+  }
 
   const statut = deriveStatut(abo);
   if (statut === 'SUSPENDU') throw new ApiAbonnementsError('Abonnement suspendu', 409);
