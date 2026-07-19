@@ -161,3 +161,4 @@ Démarre l'API Express (port 5050) et le serveur de développement React (port 5
 - [docs/plan_service_utilisateurs.md](docs/plan_service_utilisateurs.md) — plan d'implémentation initial
 - [docs/TP1-service-utilisateurs.md](docs/TP1-service-utilisateurs.md) — livrable du TP : fonctionnalités critiques, plan de tests, tableau de synthèse, scénario fonctionnel
 - [docs/guide-tests-et-demo.md](docs/guide-tests-et-demo.md) — installation, commandes de test, parcours de démonstration
+- [docs/presentation/tp1-service-utilisateurs.md](docs/presentation/tp1-service-utilisateurs.md) — support de présentation (Marp) ; export PDF dans [docs/pdf/TP1-Service-Utilisateurs-presentation.pdf](docs/pdf/TP1-Service-Utilisateurs-presentation.pdf)
