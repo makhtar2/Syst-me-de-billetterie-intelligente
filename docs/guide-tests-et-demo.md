@@ -6,6 +6,7 @@ Commandes à exécuter, dans l'ordre, pour installer le projet, lancer les tests
 
 - Node.js 18 ou plus (vérifier avec `node -v`)
 - MongoDB installé et lancé en local
+- MySQL installé et lancé en local — uniquement si tu veux faire tourner le vrai `service-abonnements/` ; le frontend fonctionne sans, contre un client API simulé (voir §9)
 
 Si `npm` n'est pas reconnu dans le terminal, Node est probablement géré par `fnm` mais pas chargé dans cette session :
 
@@ -64,7 +65,7 @@ Démarre l'API Express (port 5050) et le frontend React (port 5173). Ouvrir `htt
 
 ## 7. Lancer les tests
 
-Backend (depuis `backend/`) :
+Backend Service Utilisateurs (depuis `backend/`) :
 
 ```bash
 npm test               # toute la suite : 59 tests
@@ -72,10 +73,18 @@ npm run test:unitaires # 14 tests, sans base de données
 npm run test:api       # 45 tests, avec une base MongoDB de test
 ```
 
+Backend Service Abonnements (depuis `service-abonnements/`, nécessite MySQL — voir §9) :
+
+```bash
+npm test               # toute la suite : 75 tests
+npm run test:unitaires # 24 tests, sans base de données
+npm run test:api       # 51 tests, avec une base MySQL de test
+```
+
 Frontend (depuis `frontend/`) :
 
 ```bash
-npm test               # 22 tests
+npm test                # 73 tests (22 Service Utilisateurs + 51 Service Abonnements)
 ```
 
 Autres commandes utiles côté frontend :
@@ -85,7 +94,7 @@ npm run lint    # analyse statique
 npm run build   # build de production
 ```
 
-## 8. Démonstration — parcours à suivre
+## 8. Démonstration — Service Utilisateurs
 
 1. Se connecter avec le compte administrateur (§5).
 2. Aller sur **Gestion des Comptes** → **Importer CSV** → déposer `docs/exemples/utilisateurs-test.csv`.
@@ -97,7 +106,35 @@ npm run build   # build de production
 8. Revenir sur le compte administrateur, modifier un compte (nom, téléphone ou rôle) depuis le tableau.
 9. Bloquer puis supprimer un compte, vérifier les compteurs du tableau de bord (total, actifs, bloqués, supprimés).
 
-## 9. Problèmes fréquents
+## 9. Démonstration — Service Abonnements
+
+Le frontend fonctionne contre un client API simulé (`frontend/src/services/apiAbonnements.js`) tant que le vrai `service-abonnements/` n'est pas branché — **aucune base MySQL n'est nécessaire pour cette démonstration**, `npm run dev` suffit.
+
+1. Se connecter avec le compte administrateur.
+2. Aller sur **Formules**, créer une formule Limitée (ex. 20 voyages, 30 jours, 15 000 FCFA).
+3. Aller sur **Abonnements** → **Nouvelle souscription**, choisir un client actif et cette formule.
+4. Tenter de souscrire le même client à une autre formule Limitée : refusé (un seul abonnement Limité/Illimité en cours par client). Le souscrire à un Ticket simple : accepté, les tickets restent cumulables.
+5. Ouvrir la fiche détail de l'abonnement, consulter le solde et l'historique.
+6. Suspendre l'abonnement, vérifier qu'il n'apparaît plus "Actif" ; le réactiver.
+7. Le résilier : constater que l'action devient définitive (plus de renouvellement ni de réactivation possible).
+8. Consulter le **Tableau de bord** : total, répartition par statut/type, revenu, expirations sous 7 jours.
+
+Pour faire tourner le vrai backend (`service-abonnements/`, port 5060, optionnel à ce stade) :
+
+```bash
+cd service-abonnements
+npm install
+```
+
+Créer `service-abonnements/.env` avec `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` et le même `JWT_SECRET` que `backend/.env` (le service ne réémet pas de jetons, il vérifie ceux du Service Utilisateurs).
+
+```bash
+npm run dev
+```
+
+Démarre l'API sur le port 5060, avec synchronisation automatique des tables MySQL.
+
+## 10. Problèmes fréquents
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
@@ -105,3 +142,4 @@ npm run build   # build de production
 | `Error connecting to MongoDB` | MongoDB pas démarré | `sudo systemctl start mongod` |
 | Erreur CORS dans la console du navigateur | Le backend a crashé (souvent lié à MongoDB) | Vérifier les logs du terminal backend |
 | `401 Unauthorized` au login | Base de données vide, pas d'admin créé | `npm run seed:admin` |
+| `service-abonnements` ne démarre pas | MySQL pas démarré, ou `.env` manquant | Vérifier que MySQL écoute sur le port configuré, créer `service-abonnements/.env` |
