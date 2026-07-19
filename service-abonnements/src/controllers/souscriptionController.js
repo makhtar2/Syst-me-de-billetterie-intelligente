@@ -93,10 +93,10 @@ export const souscrire = async (req, res) => {
   }
 };
 
-// GET /api/abonnements/souscriptions?utilisateurId=&statut=&type=&recherche=
+// GET /api/abonnements/souscriptions?utilisateurId=&statut=&type=&recherche=&expireSous=
 export const listerSouscriptions = async (req, res) => {
   try {
-    const { utilisateurId, statut, type, recherche } = req.query;
+    const { utilisateurId, statut, type, recherche, expireSous } = req.query;
 
     if (statut && !STATUTS_ABONNEMENT.includes(statut)) {
       return res.status(400).json({
@@ -126,7 +126,23 @@ export const listerSouscriptions = async (req, res) => {
       await abonnement.rafraichirStatut();
     }
 
-    const resultat = statut ? abonnements.filter((a) => a.statut === statut) : abonnements;
+    let resultat = statut ? abonnements.filter((a) => a.statut === statut) : abonnements;
+
+    // Filtre « expire bientôt » (§8.1) : il ne sert pas à consulter mais à
+    // agir — repérer les clients à relancer avant la coupure. On se limite
+    // donc aux abonnements encore utilisables.
+    if (expireSous !== undefined) {
+      const jours = Number(expireSous);
+      if (!Number.isInteger(jours) || jours < 0) {
+        return res.status(400).json({ message: 'expireSous doit être un nombre entier de jours' });
+      }
+      const aujourdHui = ajouterJours(new Date().toISOString().split('T')[0], 0);
+      const limite = ajouterJours(aujourdHui, jours);
+      resultat = resultat.filter(
+        (a) => a.statut === 'ACTIF' && a.dateExpiration >= aujourdHui && a.dateExpiration <= limite
+      );
+    }
+
     return res.status(200).json(resultat);
   } catch (error) {
     return res.status(500).json({ message: 'Erreur lors de la récupération des abonnements' });
