@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import formuleRoutes from './routes/formuleRoutes.js';
 import souscriptionRoutes from './routes/souscriptionRoutes.js';
+import validiteRoutes from './routes/validiteRoutes.js';
 
 // Application Express du Service Abonnements.
 // Volontairement séparée de server.js : aucune écoute réseau, aucune connexion
@@ -29,7 +30,10 @@ app.use('/api/abonnements/formules', formuleRoutes);
 // Souscriptions et cycle de vie (§4.2)
 app.use('/api/abonnements/souscriptions', souscriptionRoutes);
 
-// Consommation et statistiques seront montées ici (tâches A6 à A8).
+// Verification du droit a voyager (§4.4), consommee par le Service Billetterie
+app.use('/api/abonnements/validite', validiteRoutes);
+
+// Les statistiques seront montées ici (tâche A8).
 
 // Ressource inconnue
 app.use((req, res) => {
