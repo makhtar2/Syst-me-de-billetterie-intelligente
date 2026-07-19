@@ -1,6 +1,6 @@
 import { sequelize } from '../config/database.js';
-import Formule from './Formule.js';
-import Abonnement from './Abonnement.js';
+import Formule, { TYPES_FORMULE } from './Formule.js';
+import Abonnement, { STATUTS_ABONNEMENT, STATUTS_EN_COURS } from './Abonnement.js';
 import Consommation from './Consommation.js';
 
 // --- Associations -----------------------------------------------------------
@@ -17,4 +17,14 @@ Abonnement.belongsTo(Formule, { foreignKey: { name: 'FormuleId', allowNull: fals
 Abonnement.hasMany(Consommation, { foreignKey: { name: 'AbonnementId', allowNull: false }, onDelete: 'CASCADE' });
 Consommation.belongsTo(Abonnement, { foreignKey: { name: 'AbonnementId', allowNull: false } });
 
-export { sequelize, Formule, Abonnement, Consommation };
+// Les énumérations sont ré-exportées ici : les contrôleurs n'ont ainsi qu'un
+// seul point d'entrée pour tout ce qui touche aux modèles.
+export {
+  sequelize,
+  Formule,
+  Abonnement,
+  Consommation,
+  TYPES_FORMULE,
+  STATUTS_ABONNEMENT,
+  STATUTS_EN_COURS,
+};
