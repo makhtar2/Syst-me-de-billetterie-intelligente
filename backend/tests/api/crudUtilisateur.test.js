@@ -1,3 +1,19 @@
+/**
+ * Tests d'API — CRUD utilisateur : lecture unitaire et modification
+ *
+ * Cas couverts    : A35 à A45 (tableau de synthèse du livrable)
+ * Fonctionnalités : F11 — Modification d'un compte, changement de rôle inclus
+ *                   F2 — Contrôle d'accès administrateur
+ *
+ * Le changement de rôle est la partie sensible : accorder « Administrateur »
+ * à tort donnerait des privilèges indus sur l'ensemble des comptes. On vérifie
+ * donc qu'il fonctionne, mais aussi qu'un rôle hors énumération est rejeté
+ * avec un code 400 — et non une erreur serveur (régression §5.3 du livrable).
+ *
+ * Deux garde-fous sont également couverts : l'e-mail (clé unique d'identification)
+ * et le statut ne sont PAS modifiables par cette route. Le statut relève des
+ * routes d'activation, qui régénèrent le mot de passe et notifient l'utilisateur.
+ */
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';

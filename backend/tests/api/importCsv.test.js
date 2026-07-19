@@ -1,3 +1,21 @@
+/**
+ * Tests d'API — Importation massive par fichier CSV
+ *
+ * Cas couverts    : A29 à A34 (tableau de synthèse du livrable)
+ * Fonctionnalités : F6 — Importation CSV
+ *                   F2 — Contrôle d'accès (import réservé aux administrateurs)
+ *
+ * L'import traite des lots entiers : une erreur s'y propage à des dizaines de
+ * comptes, d'où sa criticité. Le comportement attendu n'est pas « tout ou
+ * rien » mais un traitement ligne par ligne — une ligne fautive est écartée
+ * avec son motif, sans interrompre les suivantes.
+ *
+ * Les quatre motifs de rejet sont couverts : doublon d'e-mail, format d'e-mail
+ * invalide, champ obligatoire manquant, rôle hors énumération.
+ *
+ * Les fichiers sont envoyés en pièce jointe multipart, comme le ferait le
+ * navigateur, afin de traverser réellement multer et le parseur CSV.
+ */
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';

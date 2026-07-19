@@ -1,3 +1,21 @@
+/**
+ * Tests d'API — Création, recherche, filtrage et statistiques
+ *
+ * Cas couverts    : A9 à A19 (tableau de synthèse du livrable)
+ * Fonctionnalités : F6 — Création de comptes et rejet des doublons
+ *                   F9 — Recherche et filtrage
+ *                   F10 — Tableau de bord statistique
+ *
+ * Le cahier des charges impose de pouvoir rechercher un utilisateur par son
+ * e-mail, son numéro de téléphone ou son identifiant unique : les trois sont
+ * couverts. La recherche par téléphone est traitée à part, car elle a révélé
+ * une régression (§5.1 du livrable).
+ *
+ * Les statistiques sont vérifiées sur les trois statuts, « Supprimé » compris —
+ * c'est un chiffre explicitement demandé et il avait été oublié à l'affichage.
+ *
+ * Requêtes HTTP réelles via supertest, base de test isolée.
+ */
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';

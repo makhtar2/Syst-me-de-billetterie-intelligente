@@ -1,3 +1,21 @@
+/**
+ * Utilitaires partagés par toutes les suites de tests.
+ *
+ * Trois garanties sont assurées ici, et elles conditionnent la fiabilité de
+ * l'ensemble des tests :
+ *
+ *   1. ISOLATION DES DONNÉES — les tests n'écrivent jamais dans la base de
+ *      développement, mais dans une base dédiée supprimée à la fin.
+ *   2. ISOLATION ENTRE FICHIERS — le lanceur exécute chaque fichier dans son
+ *      propre processus, en parallèle. Le nom de la base est donc suffixé par
+ *      le PID : sans cela, un fichier supprimait la base pendant qu'un autre
+ *      l'utilisait encore (erreur « collection dropped » rencontrée en pratique).
+ *   3. AUCUN E-MAIL RÉEL — la configuration SMTP est vidée, ce qui place le
+ *      service d'envoi en mode dégradé : il journalise au lieu d'expédier.
+ *
+ * Sans la garantie 3, faire tourner la suite enverrait de vrais messages aux
+ * adresses présentes dans les jeux de données.
+ */
 import mongoose from 'mongoose';
 import User from '../src/models/User.js';
 
