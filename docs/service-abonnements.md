@@ -15,6 +15,7 @@ Même répartition qu'au premier TP : une personne sur le front (`frontend/src/*
 - Consommation d'un voyage : refusée si le titre est expiré, épuisé, suspendu ou résilié, avec le motif exact renvoyé au guichet.
 - Un scan rejoué (même identifiant de validation, par exemple après un retry réseau) ne décompte jamais deux fois le même voyage.
 - Vérification de la validité d'un titre (`GET /validite/:utilisateurId`) : c'est l'endpoint que consommera le futur Service Billetterie à chaque contrôle de QR Code.
+- Ticket simple : QR Code unique généré sur la fiche détail tant que le billet est actif, conformément au cahier des charges ; disparaît une fois consommé.
 
 **Cohérence commerciale — si ça casse, le catalogue ou la facturation deviennent incohérents :**
 - Une formule n'est jamais supprimée, seulement désactivée (retirée du catalogue) — pour ne pas casser l'historique des abonnements déjà souscrits dessus.
@@ -34,7 +35,7 @@ Le choix de ces fonctionnalités de recherche et de tableau de bord répond à l
 Même principe qu'au premier TP, un outillage par côté :
 
 - **Back** : `node:test` + `supertest`, sur une base MySQL dédiée aux tests. Les jetons sont signés avec le même secret que le Service Utilisateurs sans jamais s'y connecter — ça vérifie que l'interopérabilité entre les deux services fonctionne réellement, pas seulement sur le papier.
-- **Front** : Jest, sur deux fichiers — `utils/validatorsAbonnements.js` (règles de formulaire) et `services/apiAbonnements.js` (le client API simulé, tant que le vrai backend n'est pas branché). Ce deuxième fichier est le plus gros : il doit respecter le contrat au champ près, tests à l'appui.
+- **Front** : Jest, sur `utils/validatorsAbonnements.js` (règles de formulaire). Le client API (`services/apiAbonnements.js`) fait de vrais appels HTTP vers le backend réel — comme `services/api.js` pour le Service Utilisateurs, il n'est pas testé unitairement ; sa logique est couverte par les tests du backend qu'il appelle.
 
 ```bash
 # backend (service-abonnements/)
@@ -43,7 +44,7 @@ npm run test:unitaires # 24 tests, sans base de données
 npm run test:api       # 51 tests, avec une base MySQL de test
 
 # frontend
-npm test                # 73 tests, dont 51 sur le périmètre Abonnements
+npm test                # 34 tests, dont 12 sur le périmètre Abonnements
 ```
 
 Rendu des pages et interactions vérifiés manuellement, comme au premier TP.
@@ -74,12 +75,11 @@ Rendu des pages et interactions vérifiés manuellement, comme au premier TP.
 
 51 tests API + 24 tests unitaires.
 
-### Front — 73 tests (dont 51 sur le périmètre Abonnements)
+### Front — 34 tests (dont 12 sur le périmètre Abonnements)
 
 | Fichier | Cas couverts | Nb |
 |---|---|---|
 | `utils/validatorsAbonnements.test.js` | Formulaire de formule (nom, type, tarif, durée, voyages) et de souscription (client, formule, date) | 12 |
-| `services/apiAbonnements.test.js` | L'intégralité du contrat simulé : formules, souscriptions, règle du seul abonnement en cours, cycle de vie, consommation avec unicité du scan, validité, statistiques | 39 |
 
 Le reste (22 tests) porte sur le périmètre Service Utilisateurs, inchangé depuis le premier TP.
 
@@ -119,14 +119,15 @@ Contrairement au premier TP, le code de ce service a été écrit avec les tests
 
 Le point commun avec les anomalies du premier TP : dans les deux cas, c'est la confrontation entre deux sources indépendantes (le simulateur écrit d'un côté, les tests réels du backend de l'autre) qui a fait remonter les écarts — pas la relecture du code seul.
 
+**5.8 — Le front a ensuite été branché sur le vrai backend** (plus de simulateur), et un dernier écart est ressorti à cette occasion : `verifierValidite` renvoyait l'abonnement complet (10 champs) au lieu des 3 prévus au contrat §4.4. Repéré par le développeur back en comparant le simulateur au sien avant même le branchement, corrigé avant que ça n'ait d'impact (aucun écran ne consommait encore cet endpoint). Le cycle complet a ensuite été rejoué en conditions réelles (souscription, consommation, historique, validité, statistiques) sans qu'aucun autre écart ne ressorte.
+
 ---
 
 ## 6. Limites connues
 
-- Le front tourne toujours contre le simulateur (`services/apiAbonnements.js`), pas contre le vrai service (`service-abonnements/`, port 5060) : le branchement réel est en attente de confirmation que le service tourne correctement chez le développeur back (suivi dans l'issue GitHub #22).
-- Pas de test de bout en bout reliant vraiment le front au vrai backend — seul le contrat est vérifié des deux côtés indépendamment.
-- Le lien de confirmation par e-mail à expiration (24-48h, régénérable) et l'unicité du numéro de téléphone, deux points soulevés par le professeur sur le Service Utilisateurs, restent ouverts côté back.
-- Service Billetterie / QR Code non développé à ce stade — c'est lui qui consommera `GET /validite/:utilisateurId` et `POST /souscriptions/:id/consommer`.
+- Pas de test de bout en bout automatisé reliant le front au vrai backend — le cycle complet a été rejoué manuellement (voir §5.8), mais rien ne le rejoue automatiquement à chaque changement.
+- Service Billetterie / QR Code (scan et validation) non développé à ce stade — c'est lui qui consommera `GET /validite/:utilisateurId` et `POST /souscriptions/:id/consommer`. Seule la génération du QR Code sur un ticket simple est faite côté front (§1), le contenu encodé reste volontairement simple (identifiant + type), sans jeton signé.
+- `service-abonnements` doit tourner en permanence (MySQL compris) pour que les pages Formules, Abonnements et Tableau de bord fonctionnent — ce n'était pas le cas avant le branchement, quand le front tournait contre le simulateur.
 
 ---
 
@@ -139,9 +140,9 @@ Le point commun avec les anomalies du premier TP : dans les deux cas, c'est la c
 | Modèles Sequelize | `service-abonnements/src/models/` |
 | Tests API back | `service-abonnements/tests/api/` |
 | Tests unitaires back | `service-abonnements/tests/unitaires/` |
-| Client API simulé (front) | `frontend/src/services/apiAbonnements.js` |
-| Tests du client API simulé | `frontend/src/services/apiAbonnements.test.js` |
+| Client API (front) | `frontend/src/services/apiAbonnements.js` |
 | Règles de validation front | `frontend/src/utils/validatorsAbonnements.js` |
 | Pages Formules | `frontend/src/pages/FormulesManagement.jsx`, `frontend/src/components/FormuleModal.jsx` |
 | Pages Abonnements | `frontend/src/pages/AbonnementsManagement.jsx`, `frontend/src/pages/AbonnementDetail.jsx`, `frontend/src/components/SouscriptionModal.jsx` |
 | Tableau de bord | `frontend/src/pages/AbonnementStats.jsx` |
+| Catalogue de démo | `service-abonnements/src/seed/seedFormules.js` |

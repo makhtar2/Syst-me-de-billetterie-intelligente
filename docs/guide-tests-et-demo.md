@@ -5,8 +5,8 @@ Commandes à exécuter, dans l'ordre, pour installer le projet, lancer les tests
 ## 1. Prérequis
 
 - Node.js 18 ou plus (vérifier avec `node -v`)
-- MongoDB installé et lancé en local
-- MySQL installé et lancé en local — uniquement si tu veux faire tourner le vrai `service-abonnements/` ; le frontend fonctionne sans, contre un client API simulé (voir §9)
+- MongoDB installé et lancé en local (Service Utilisateurs)
+- MySQL installé et lancé en local (Service Abonnements — le front y est branché directement, plus de simulateur)
 
 Si `npm` n'est pas reconnu dans le terminal, Node est probablement géré par `fnm` mais pas chargé dans cette session :
 
@@ -24,25 +24,30 @@ Depuis la racine du projet :
 npm run install-all
 ```
 
-Installe les dépendances du backend et du frontend.
+Installe les dépendances des trois services (backend, service-abonnements, frontend).
 
 ## 3. Configuration
 
 Créer `backend/.env` à partir de `backend/.env.example` (au minimum `MONGO_URI` et `JWT_SECRET`).
 
-## 4. Démarrer MongoDB
+Créer `service-abonnements/.env` à partir de `service-abonnements/.env.example` (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` et **le même `JWT_SECRET` que `backend/.env`** — ce service ne réémet pas de jetons, il vérifie ceux du Service Utilisateurs).
+
+## 4. Démarrer les bases de données
+
+MongoDB :
 
 ```bash
 sudo systemctl start mongod
+ss -ltnp | grep 27017   # vérifier que ça écoute
 ```
 
-Vérifier que ça écoute :
+MySQL : créer les bases `billetterie_abonnements` et `billetterie_abonnements_test` si elles n'existent pas encore.
 
 ```bash
-ss -ltnp | grep 27017
+mysql -h127.0.0.1 -uroot -p -e "CREATE DATABASE IF NOT EXISTS billetterie_abonnements; CREATE DATABASE IF NOT EXISTS billetterie_abonnements_test;"
 ```
 
-## 5. Créer le compte administrateur
+## 5. Créer le compte administrateur et le catalogue de démo
 
 ```bash
 cd backend
@@ -53,6 +58,13 @@ Identifiants par défaut (sauf s'ils sont surchargés dans `.env`) :
 - Email : `admin@billetterie.com`
 - Mot de passe : `Admin1234`
 
+```bash
+cd service-abonnements
+npm run seed:formules
+```
+
+Crée un catalogue de formules de démonstration (idempotent, ne duplique rien si rejoué).
+
 ## 6. Lancer le projet
 
 Depuis la racine :
@@ -61,19 +73,19 @@ Depuis la racine :
 npm run dev
 ```
 
-Démarre l'API Express (port 5050) et le frontend React (port 5173). Ouvrir `http://localhost:5173`.
+Démarre les trois services ensemble : l'API Express du Service Utilisateurs (port 5050), l'API Express du Service Abonnements (port 5060) et le frontend React (port 5173). Ouvrir `http://localhost:5173`.
 
 ## 7. Lancer les tests
 
 Backend Service Utilisateurs (depuis `backend/`) :
 
 ```bash
-npm test               # toute la suite : 59 tests
+npm test               # toute la suite : 80 tests
 npm run test:unitaires # 14 tests, sans base de données
-npm run test:api       # 45 tests, avec une base MongoDB de test
+npm run test:api       # 66 tests, avec une base MongoDB de test
 ```
 
-Backend Service Abonnements (depuis `service-abonnements/`, nécessite MySQL — voir §9) :
+Backend Service Abonnements (depuis `service-abonnements/`) :
 
 ```bash
 npm test               # toute la suite : 75 tests
@@ -84,8 +96,10 @@ npm run test:api       # 51 tests, avec une base MySQL de test
 Frontend (depuis `frontend/`) :
 
 ```bash
-npm test                # 73 tests (22 Service Utilisateurs + 51 Service Abonnements)
+npm test                # 34 tests (22 Service Utilisateurs + 12 Service Abonnements)
 ```
+
+Les clients API (`services/api.js`, `services/apiAbonnements.js`) ne sont pas testés unitairement : ce sont de vrais clients HTTP, la logique qu'ils appellent est couverte côté serveur.
 
 Autres commandes utiles côté frontend :
 
@@ -108,31 +122,17 @@ npm run build   # build de production
 
 ## 9. Démonstration — Service Abonnements
 
-Le frontend fonctionne contre un client API simulé (`frontend/src/services/apiAbonnements.js`) tant que le vrai `service-abonnements/` n'est pas branché — **aucune base MySQL n'est nécessaire pour cette démonstration**, `npm run dev` suffit.
+Nécessite `service-abonnements` démarré (§6) avec sa base MySQL et le catalogue de démo injecté (§5).
 
 1. Se connecter avec le compte administrateur.
-2. Aller sur **Formules**, créer une formule Limitée (ex. 20 voyages, 30 jours, 15 000 FCFA).
-3. Aller sur **Abonnements** → **Nouvelle souscription**, choisir un client actif et cette formule.
-4. Tenter de souscrire le même client à une autre formule Limitée : refusé (un seul abonnement Limité/Illimité en cours par client). Le souscrire à un Ticket simple : accepté, les tickets restent cumulables.
-5. Ouvrir la fiche détail de l'abonnement, consulter le solde et l'historique.
-6. Suspendre l'abonnement, vérifier qu'il n'apparaît plus "Actif" ; le réactiver.
-7. Le résilier : constater que l'action devient définitive (plus de renouvellement ni de réactivation possible).
-8. Consulter le **Tableau de bord** : total, répartition par statut/type, revenu, expirations sous 7 jours.
-
-Pour faire tourner le vrai backend (`service-abonnements/`, port 5060, optionnel à ce stade) :
-
-```bash
-cd service-abonnements
-npm install
-```
-
-Créer `service-abonnements/.env` avec `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` et le même `JWT_SECRET` que `backend/.env` (le service ne réémet pas de jetons, il vérifie ceux du Service Utilisateurs).
-
-```bash
-npm run dev
-```
-
-Démarre l'API sur le port 5060, avec synchronisation automatique des tables MySQL.
+2. Aller sur **Formules** : le catalogue de démo est déjà là (Ticket simple, Carnet 10 voyages, Mensuel 20/40 voyages, Illimité mensuel/annuel). Créer une formule si besoin.
+3. Activer un client sur **Gestion des Comptes** s'il n'y en a pas encore (la liste de la souscription ne montre que les clients `Actif`).
+4. Aller sur **Abonnements** → **Nouvelle souscription**, choisir ce client et une formule.
+5. Tenter de souscrire le même client à une autre formule Limitée : refusé (un seul abonnement Limité/Illimité en cours par client). Le souscrire à un Ticket simple : accepté, les tickets restent cumulables.
+6. Ouvrir la fiche détail de l'abonnement, consulter le solde et l'historique. Pour un ticket simple, le QR Code s'affiche tant que le billet est actif.
+7. Suspendre l'abonnement, vérifier qu'il n'apparaît plus "Actif" ; le réactiver.
+8. Le résilier : constater que l'action devient définitive (plus de renouvellement ni de réactivation possible).
+9. Consulter le **Tableau de bord** : total, répartition par statut/type, revenu, expirations sous 7 jours.
 
 ## 10. Problèmes fréquents
 
@@ -143,3 +143,4 @@ Démarre l'API sur le port 5060, avec synchronisation automatique des tables MyS
 | Erreur CORS dans la console du navigateur | Le backend a crashé (souvent lié à MongoDB) | Vérifier les logs du terminal backend |
 | `401 Unauthorized` au login | Base de données vide, pas d'admin créé | `npm run seed:admin` |
 | `service-abonnements` ne démarre pas | MySQL pas démarré, ou `.env` manquant | Vérifier que MySQL écoute sur le port configuré, créer `service-abonnements/.env` |
+| "NetworkError" ou "Impossible de récupérer..." sur les pages Formules/Abonnements/Tableau de bord | `service-abonnements` (port 5060) n'est pas démarré | `npm run dev` depuis la racine, ou `npm run dev --prefix service-abonnements` |
