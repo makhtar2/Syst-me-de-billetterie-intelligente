@@ -147,8 +147,7 @@ services:
       resources:
         limits:
           memory: 64M
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
+    # Plus de port public exposé : tout passe par Caddy (HTTPS)
     depends_on:
       - backend
       - abonnements
@@ -156,11 +155,38 @@ services:
     networks:
       - billetterie-net
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: billetterie-caddy
+    restart: unless-stopped
+    mem_limit: 64m
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    ports:
+      - "80:80"    # Validation ACME Let's Encrypt (HTTP-01 challenge)
+      - "443:443"  # HTTPS production
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data         # Certificats Let's Encrypt (persistants)
+      - caddy_config:/config     # Configuration Caddy (cache)
+    depends_on:
+      - backend
+      - abonnements
+      - billetterie
+      - frontend
+    networks:
+      - billetterie-net
+
 volumes:
   mongo_data:
   mariadb_data:
   postgres_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   billetterie-net:
     driver: bridge
+
