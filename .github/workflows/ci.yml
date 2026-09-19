@@ -55,18 +55,19 @@ jobs:
     name: Tests — Service Abonnements
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:8.0
+      postgres-abonnements:
+        image: postgres:16-alpine
         ports:
-          - 3306:3306
+          - 5433:5432
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: billetterie_abonnements_test
+          POSTGRES_DB: billetterie_abonnements_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 5
     defaults:
       run:
         working-directory: service-abonnements
@@ -90,9 +91,9 @@ jobs:
           NODE_ENV: test
           PORT: 5065
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_USER: root
-          DB_PASSWORD: root
+          DB_PORT: 5433
+          DB_USER: postgres
+          DB_PASSWORD: postgres
           DB_NAME: billetterie_abonnements_test
           DB_NAME_TEST: billetterie_abonnements_test
           JWT_SECRET: test_secret
