@@ -1,4 +1,4 @@
-name: CI Backend Billetterie
+name: CI — Système de Billetterie Intelligente
 
 on:
   push:
@@ -8,7 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1 — Service Utilisateurs (MongoDB)
+  # ─────────────────────────────────────────────
   test-backend:
+    name: Tests — Service Utilisateurs
     runs-on: ubuntu-latest
     services:
       mongodb:
@@ -27,10 +31,12 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
-      - name: Installer Node.js
+      - name: Installer Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
 
       - name: Installer les dépendances
         run: npm ci
@@ -42,7 +48,112 @@ jobs:
           JWT_SECRET: test_secret
           MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
 
+  # ─────────────────────────────────────────────
+  # JOB 2 — Service Abonnements (MySQL)
+  # ─────────────────────────────────────────────
+  test-abonnements:
+    name: Tests — Service Abonnements
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: billetterie_abonnements_test
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: service-abonnements
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: service-abonnements/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lancer les tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          PORT: 5065
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: billetterie_abonnements_test
+          DB_NAME_TEST: billetterie_abonnements_test
+          JWT_SECRET: test_secret
+
+  # ─────────────────────────────────────────────
+  # JOB 3 — Service Billetterie (PostgreSQL)
+  # ─────────────────────────────────────────────
+  test-billetterie:
+    name: Tests — Service Billetterie
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: billetterie_db_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: service-billetterie
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: service-billetterie/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lancer les tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          PORT: 5070
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_NAME: billetterie_db_test
+          DB_NAME_TEST: billetterie_db_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          JWT_SECRET: test_secret
+          SERVICE_UTILISATEURS_URL: http://localhost:5050
+          SERVICE_ABONNEMENTS_URL: http://localhost:5065
+
+  # ─────────────────────────────────────────────
+  # JOB 4 — Frontend (build + tests Jest)
+  # ─────────────────────────────────────────────
   build-frontend:
+    name: Build & Tests — Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,15 +162,20 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
-      - name: Installer Node.js
+      - name: Installer Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Installer les dépendances
         run: npm ci
 
-      - name: Construire le frontend
+      - name: Lancer les tests unitaires Jest
+        run: npm test -- --watchAll=false
+
+      - name: Construire le frontend (vérification production)
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
