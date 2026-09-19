@@ -89,6 +89,8 @@ services:
       resources:
         limits:
           memory: 96M
+    ports:
+      - "5065:5065"
     environment:
       PORT: 5065
       NODE_ENV: production
@@ -114,6 +116,8 @@ services:
       resources:
         limits:
           memory: 96M
+    ports:
+      - "5070:5070"
     environment:
       PORT: 5070
       NODE_ENV: production
